@@ -1,5 +1,5 @@
 # -----------------------------
-# System & IDE (공통)
+# 공통(시스템 & IDE)
 # -----------------------------
 .DS_Store
 Thumbs.db
@@ -12,7 +12,7 @@ Thumbs.db
 *.sln
 
 # -----------------------------
-# Logs (공통)
+# 공통(Logs)
 # -----------------------------
 logs
 *.log
@@ -22,7 +22,7 @@ yarn-error.log*
 pnpm-debug.log*
 
 # -----------------------------
-# Dependencies (모든 폴더 적용)
+# Dependencies
 # -----------------------------
 node_modules/
 .pnp
@@ -34,15 +34,14 @@ node_modules/
 !.yarn/versions
 
 # -----------------------------
-# Environment Variables (중요!)
+# Environment Variables
 # -----------------------------
-# API 키 등이 들어있는 파일은 절대 올리면 안 됩니다.
 .env
 .env.*
 !.env.example
 
 # -----------------------------
-# Web (Next.js)
+# Server 폴더
 # -----------------------------
 .next/
 out/
@@ -53,7 +52,7 @@ coverage/
 next-env.d.ts
 
 # -----------------------------
-# Extension (Vite)
+# Extension 폴더
 # -----------------------------
 dist/
 dist-ssr/
