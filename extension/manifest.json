@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Note Keeper",
+  "version": "1.0.0",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "storage",
+    "identity",
+    "sidePanel"
+  ],
+  "side_panel": {
+    "default_path": "index.html"
+  },
+  "action": {
+    "default_title": "Note Keeper"
+  },
+  "background": {
+    "service_worker": "src/background.ts",
+    "type": "module"
+  },
+  "host_permissions": [
+    "https://*.supabase.co/*",
+    "https://accounts.google.com/"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval' http://localhost:5173; object-src 'self'"
+  }
+}
