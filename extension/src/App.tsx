@@ -115,7 +115,7 @@ function App() {
           />
 
           {/* 메모 목록 */}
-          <NoteList notes={notes} loading={loading} />
+          <NoteList notes={notes} loading={loading} onRefresh={fetchNotes} />
 
           {/* 글쓰기 모달 */}
           {isModalOpen && (

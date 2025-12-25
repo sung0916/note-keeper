@@ -5,6 +5,8 @@ export interface Note {
     title: string;
     content: string;
     created_at: string;
+    bg_color?: string;
+    text_color?: string;
 }
 
 export interface UserProfile {

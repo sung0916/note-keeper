@@ -1,11 +1,34 @@
+import { supabase } from "../supabase";
 import type { Note } from "../types";
+import NoteItem from "./NoteItem";
 
 interface NoteListProps {
     notes: Note[];
     loading: boolean;
+    onRefresh: () => void;
 }
 
-export default function NoteList({ notes, loading }: NoteListProps) {
+export default function NoteList({ notes, loading, onRefresh }: NoteListProps) {
+    const handleDelete = async (id: number) => {
+        try {
+            const { error } = await supabase.from('notes').delete().eq('note_id', id);
+            if (error) throw error;
+            onRefresh();
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    const handleAiAnalyze = async (note: Note) => {
+        console.log('AI 추천 요청', note.content);
+        // TODO: fetch('~~~~~~~~~~~/api/ai/recommend');
+    };
+
+    const handleOpen = (note: Note) => {
+        console.log('메모열기: ', note);
+    };
+
     if (loading) {
         return <div className="p-4 text-center text-gray-500 text-sm">로딩 중...</div>;
     }
@@ -22,15 +45,13 @@ export default function NoteList({ notes, loading }: NoteListProps) {
     return (
         <div className="flex-1 overflow-y-auto bg-gray-50 p-2 space-y-2">
             {notes.map((note) => (
-                <div key={note.note_id} className="bg-white p-3 rounded border shadow-sm">
-                    <p className="text-gray-800 text-sm whitespace-pre-wrap">{note.title}</p>
-                    <div className="mt-2 flex justify-between items-center">
-                        <span className="text-xs text-gray-400">
-                            {new Date(note.created_at).toLocaleString()}
-                        </span>
-                        {/* 추후 여기에 삭제/공유 버튼 추가 예정 */}
-                    </div>
-                </div>
+                <NoteItem
+                    key={note.note_id}
+                    note={note}
+                    onDelete={handleDelete}
+                    onEdit={handleOpen}
+                    onAiAnalyze={handleAiAnalyze}
+                />
             ))}
         </div>
     );
