@@ -17,148 +17,78 @@ export default function AuthButton() {
         return () => subscription.unsubscribe();
     }, []);
 
+    async function sha256(plain: string) {  // Skip nonce check 대비로 SHA-256 해싱
+        const encoder = new TextEncoder();
+        const data = encoder.encode(plain);
+        const hash = await crypto.subtle.digest('SHA-256', data);
+        return Array.from(new Uint8Array(hash))
+            .map((b) => b.toString(16).padStart(2, '0'))
+            .join('');
+    }
+
     const handleGoogleLogin = async () => {
-        console.log("👉 1. 버튼 클릭됨! 함수 시작");
-
         try {
-            // 1. 환경변수 확인
-            console.log("👉 2. Supabase 설정 확인:", {
-                url: import.meta.env.VITE_SUPABASE_URL,
-                hasKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY
-            });
+            const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+            if (!GOOGLE_CLIENT_ID) return;
 
-            // 2. 크롬 런타임 ID 확인
-            if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
-                console.error("❌ 크롬 확장프로그램 환경이 아닙니다.");
-                alert("확장프로그램 팝업에서 실행해주세요.");
-                return;
-            }
-            console.log("👉 3. 확장프로그램 ID:", chrome.runtime.id);
+            const rawNonce = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))));
+            const nonce = rawNonce.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');  // URL 특수문자 제거
+            const hashedNonce = await sha256(nonce);
+            const extensionId = chrome.runtime.id;
+            const redirectUrl = `https://${extensionId}.chromiumapp.org/`;
 
-            const redirectUrl = `https://${chrome.runtime.id}.chromiumapp.org/`;
-            console.log("👉 4. 리다이렉트 URL:", redirectUrl);
+            const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');  // 구글 인증 URL
+            authUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
+            authUrl.searchParams.set('response_type', 'id_token');
+            authUrl.searchParams.set('redirect_uri', redirectUrl);
+            authUrl.searchParams.set('scope', 'openid email profile');
+            authUrl.searchParams.set('nonce', hashedNonce);
+            authUrl.searchParams.set('prompt', 'select_account');
 
-            // 3. Supabase 로그인 URL 생성 요청
-            console.log("👉 5. Supabase에 인증 URL 요청 중...");
-            const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    queryParams: {
-                        access_type: 'offline',
-                        prompt: 'consent',
-                    },
-                    redirectTo: redirectUrl,
-                    skipBrowserRedirect: true,
-                },
-            });
-
-            if (error) {
-                console.error("❌ Supabase 에러 발생:", error);
-                throw error;
-            }
-
-            if (!data.url) {
-                console.error("❌ 데이터는 왔는데 URL이 없음:", data);
-                throw new Error('No URL returned');
-            }
-
-            console.log("👉 6. 인증 URL 수신 성공:", data.url);
-
-            // 4. 크롬 인증 창 띄우기
-            console.log("👉 7. chrome.identity.launchWebAuthFlow 실행");
-
-            chrome.identity.launchWebAuthFlow(
+            chrome.identity.launchWebAuthFlow(  // 로그인 창 팝업
                 {
-                    url: data.url,
+                    url: authUrl.toString(),
                     interactive: true,
                 },
                 async (responseUrl) => {
-                    // 콜백 함수 내부
-                    console.log("👉 8. 구글 로그인 창 닫힘. 결과 URL:", responseUrl);
-
-                    if (chrome.runtime.lastError) {
-                        console.error("❌ 크롬 런타임 에러:", chrome.runtime.lastError.message);
+                    if (chrome.runtime.lastError || !responseUrl) {
+                        console.error(chrome.runtime.lastError);
                         return;
                     }
 
-                    if (!responseUrl) {
-                        console.error("❌ URL이 돌아오지 않음 (사용자가 창을 닫았을 수도 있음)");
+                    const url = new URL(responseUrl);
+                    const params = new URLSearchParams(url.hash.substring(1));  // 토큰 추출
+                    const idToken = params.get('id_token');
+                    if (!idToken) {
+                        console.error('ID Token 없음');
                         return;
                     }
 
-                    const params = new URLSearchParams(new URL(responseUrl).hash.substring(1));
-                    const accessToken = params.get('access_token');
-                    const refreshToken = params.get('refresh_token');
-
-                    console.log("👉 9. 토큰 파싱 결과:", { accessToken: !!accessToken, refreshToken: !!refreshToken });
-
-                    if (!accessToken || !refreshToken) {
-                        console.error("❌ 토큰이 없음");
-                        return;
-                    }
-
-                    const { error: sessionError } = await supabase.auth.setSession({
-                        access_token: accessToken,
-                        refresh_token: refreshToken,
+                    const { error } = await supabase.auth.signInWithIdToken({  // Supabase 로그인
+                        provider: 'google',
+                        token: idToken,
+                        nonce: rawNonce,
                     });
-
-                    if (sessionError) console.error("❌ 세션 저장 실패:", sessionError);
-                    else console.log("✅ 로그인 최종 성공!");
+                    if (error) { alert('로그인 실패'); return; }
+                    else { console.log('로그인 성공'); }
                 }
             );
-
         } catch (err) {
-            console.error('❌ 전체 프로세스 중 에러 발생:', err);
-            alert('로그인 처리 중 에러가 발생했습니다. 콘솔을 확인하세요.');
+            console.error('로직 에러', err);
         }
     };
-
-    // const handleGoogleLogin = async () => {
-    //     try {
-    //         const { data, error } = await supabase.auth.signInWithOAuth({
-    //             provider: 'google',
-    //             options: {
-    //                 queryParams: {
-    //                     access_type: 'offline',
-    //                     prompt: 'consent',
-    //                 },
-    //                 redirectTo: `https://${chrome.runtime.id}.chromiumapp.org`,
-    //                 skipBrowserRedirect: true,
-    //             },
-    //         });
-
-    //         if (error) throw error;
-    //         if (!data.url) throw new Error('No URL returned');
-
-    //         chrome.identity.launchWebAuthFlow(
-    //             {
-    //                 url: data.url,
-    //                 interactive: true,
-    //             },
-    //             async (redirectUrl) => {
-    //                 if (chrome.runtime.lastError || !redirectUrl) return;
-    //                 const params = new URLSearchParams(new URL(redirectUrl).hash.substring(1));
-    //                 const accessToken = params.get('access_token');
-    //                 const refreshToken = params.get('refresh_token');
-    //                 if (!accessToken || !refreshToken) return;
-
-    //                 await supabase.auth.setSession({
-    //                     access_token: accessToken,
-    //                     refresh_token: refreshToken,
-    //                 });
-    //             }
-    //         );
-    //     } catch (err) { console.error('Login error: ', err) };
-    // };
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
     }
-
     if (session) {
+        const displayName =
+            session.user.user_metadata.full_name ||
+            session.user.user_metadata.name ||
+            session.user.email;
         return (
             <div className="flex items-center gap-2">
-                <span className="text-gray-600 truncate max-w-[100px]">{session.user.email}</span>
+                <span className="text-gray-600 truncate max-w-[100px]">{displayName}</span>
                 <button onClick={handleLogout} className="text-red-500 hover:text-red-700 underline">
                     로그아웃
                 </button>

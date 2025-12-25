@@ -23,7 +23,7 @@ export default function NoteList({ notes, loading }: NoteListProps) {
         <div className="flex-1 overflow-y-auto bg-gray-50 p-2 space-y-2">
             {notes.map((note) => (
                 <div key={note.note_id} className="bg-white p-3 rounded border shadow-sm">
-                    <p className="text-gray-800 text-sm whitespace-pre-wrap">{note.content}</p>
+                    <p className="text-gray-800 text-sm whitespace-pre-wrap">{note.title}</p>
                     <div className="mt-2 flex justify-between items-center">
                         <span className="text-xs text-gray-400">
                             {new Date(note.created_at).toLocaleString()}
