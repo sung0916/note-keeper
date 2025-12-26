@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { supabase } from "../supabase";
 import type { Note } from "../types";
 import NoteItem from "./NoteItem";
+import NoteDetailModal from "./NoteDetailModal";
 
 interface NoteListProps {
     notes: Note[];
@@ -9,7 +11,10 @@ interface NoteListProps {
 }
 
 export default function NoteList({ notes, loading, onRefresh }: NoteListProps) {
+    const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+
     const handleDelete = async (id: number) => {
+        if (!confirm('해당 메모를 삭제하시겠습니까?')) return;
         try {
             const { error } = await supabase.from('notes').delete().eq('note_id', id);
             if (error) throw error;
@@ -20,12 +25,16 @@ export default function NoteList({ notes, loading, onRefresh }: NoteListProps) {
         }
     }
 
+    const handleOpenDetail = (note: Note) => {
+        setSelectedNote(note);
+    };
+
     const handleAiAnalyze = async (note: Note) => {
         console.log('AI 추천 요청', note.content);
         // TODO: fetch('~~~~~~~~~~~/api/ai/recommend');
     };
 
-    const handleOpen = (note: Note) => {
+    const handleEdit = (note: Note) => {
         console.log('메모열기: ', note);
     };
 
@@ -43,16 +52,27 @@ export default function NoteList({ notes, loading, onRefresh }: NoteListProps) {
     }
 
     return (
-        <div className="flex-1 overflow-y-auto bg-gray-50 p-2 space-y-2">
-            {notes.map((note) => (
-                <NoteItem
-                    key={note.note_id}
-                    note={note}
-                    onDelete={handleDelete}
-                    onEdit={handleOpen}
-                    onAiAnalyze={handleAiAnalyze}
+        <>
+            <div className="flex-1 overflow-y-auto bg-gray-50 p-2 space-y-2">
+                {notes.map((note) => (
+                    <NoteItem
+                        key={note.note_id}
+                        note={note}
+                        onDelete={handleDelete}
+                        onEdit={() => handleOpenDetail(note)} // 이제 수정 버튼이나 아이템 클릭 시 상세 모달을 먼저 엽니다.
+                        onAiAnalyze={() => handleOpenDetail(note)} // 리스트의 AI 버튼도 상세로 진입하게 유도
+                    />
+                ))}
+            </div>
+
+            {/* 상세 보기 모달 */}
+            {selectedNote && (
+                <NoteDetailModal
+                    note={selectedNote}
+                    onClose={() => setSelectedNote(null)}
+                    onEdit={handleEdit}
                 />
-            ))}
-        </div>
+            )}
+        </>
     );
 }
