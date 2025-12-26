@@ -7,7 +7,7 @@
 - DB / Auth	Supabase:	BaaS, Google OAuth 인증
 - AI	OpenAI API	gpt-3.5-turbo 기반 텍스트 요약 및 분석
 
-2. 🗂 프로젝트 폴더 구조 (Project Structure)
+2. 🗂 프로젝트 폴더 구조 (Project Structure)<br>
 note-keeper/<br>
 ├── extension/                  # [Frontend] 크롬 확장 프로그램 소스<br>
 │   ├── manifest.json           # 권한(permissions), 사이드 패널, CSP 설정<br>
