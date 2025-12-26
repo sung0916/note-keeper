@@ -1,5 +1,7 @@
 📘 Note Keeper 진행상황
 
+- 현재 메모장 모달 AI 추천 기능 구현 중
+
 1. 🛠 기술 스택 (Tech Stack)
 - Monorepo 구조 (extension: 프론트엔드, server: 백엔드)
 - 프론트엔드: React + TypeScript + Tailwind CSS
