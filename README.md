@@ -11,7 +11,7 @@
 code
 Text
 note-keeper/
-├── extension/                  # [Frontend] 크롬 확장 프로그램 소스
+├── extension/                  # [Frontend] 크롬 확장 프로그램 소스<br>
 │   ├── manifest.json           # 권한(permissions), 사이드 패널, CSP 설정
 │   ├── vite.config.ts          # Server Port(5173), CORS, HMR 설정
 │   └── src/
