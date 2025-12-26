@@ -8,28 +8,26 @@
 - AI	OpenAI API	gpt-3.5-turbo 기반 텍스트 요약 및 분석
 
 2. 🗂 프로젝트 폴더 구조 (Project Structure)
-code
-Text
-note-keeper/
+note-keeper/<br>
 ├── extension/                  # [Frontend] 크롬 확장 프로그램 소스<br>
-│   ├── manifest.json           # 권한(permissions), 사이드 패널, CSP 설정
-│   ├── vite.config.ts          # Server Port(5173), CORS, HMR 설정
-│   └── src/
-│       ├── App.tsx             # 메인 엔트리: URL 감지, 라우팅, 전역 상태 관리
-│       ├── supabase.ts         # Supabase Client 설정 (Anon Key 사용)
-│       ├── types.ts            # Note, User 등 공통 타입 정의 인터페이스
-│       └── components/
-│           ├── AuthButton.tsx  # 구글 로그인 (Nonce 보안 로직 포함)
-│           ├── NoteList.tsx    # 메모 리스트 (Accordion UI, CRUD 핸들러)
-│           ├── NoteItem.tsx    # 개별 메모 카드 (색상 테마 적용)
-│           ├── NoteModal.tsx   # 메모 작성 모달 (URL 스냅샷, 색상 팔레트)
-│           ├── Header.tsx      # 상단 바: 페이지 제목 표시, 유저 메뉴 드롭다운
-│           ├── ActionBar.tsx   # 중간 바: 글쓰기 버튼, 다중 선택 메뉴
-│           └── ColorPicker.tsx # 16색 파스텔톤 색상 선택기
-│
-└── web/                        # [Backend] Next.js API 서버 & 웹 대시보드
-    ├── app/api/ai/recommend/   # [POST] AI 요약 요청 엔드포인트
-    └── lib/supabase-server.ts  # 서버 사이드 Supabase 클라이언트
+│   ├── manifest.json           # 권한(permissions), 사이드 패널, CSP 설정<br>
+│   ├── vite.config.ts          # Server Port(5173), CORS, HMR 설정<br>
+│   └── src/<br>
+│       ├── App.tsx             # 메인 엔트리: URL 감지, 라우팅, 전역 상태 관리<br>
+│       ├── supabase.ts         # Supabase Client 설정 (Anon Key 사용)<br>
+│       ├── types.ts            # Note, User 등 공통 타입 정의 인터페이스<br>
+│       └── components/<br>
+│           ├── AuthButton.tsx  # 구글 로그인 (Nonce 보안 로직 포함)<br>
+│           ├── NoteList.tsx    # 메모 리스트 (Accordion UI, CRUD 핸들러)<br>
+│           ├── NoteItem.tsx    # 개별 메모 카드 (색상 테마 적용)<br>
+│           ├── NoteModal.tsx   # 메모 작성 모달 (URL 스냅샷, 색상 팔레트)<br>
+│           ├── Header.tsx      # 상단 바: 페이지 제목 표시, 유저 메뉴 드롭다운<br>
+│           ├── ActionBar.tsx   # 중간 바: 글쓰기 버튼, 다중 선택 메뉴<br>
+│           └── ColorPicker.tsx # 16색 파스텔톤 색상 선택기<br>
+│<br>
+└── web/                        # [Backend] Next.js API 서버 & 웹 대시보드<br>
+    ├── app/api/ai/recommend/   # [POST] AI 요약 요청 엔드포인트<br>
+    └── lib/supabase-server.ts  # 서버 사이드 Supabase 클라이언트<br>
 
 3. 💾 데이터베이스 및 보안 (Database & Security)
 - Supabase 참고
