@@ -31,7 +31,7 @@ export default function NoteList({ notes, loading, onRefresh }: NoteListProps) {
 
     const handleAiAnalyze = async (note: Note) => {
         console.log('AI 추천 요청', note.content);
-        // TODO: fetch('~~~~~~~~~~~/api/ai/recommend');
+        // fetch('~~~~~~~~~~~/api/ai/recommend');
     };
 
     const handleEdit = (note: Note) => {
@@ -59,8 +59,8 @@ export default function NoteList({ notes, loading, onRefresh }: NoteListProps) {
                         key={note.note_id}
                         note={note}
                         onDelete={handleDelete}
-                        onEdit={() => handleOpenDetail(note)} // 이제 수정 버튼이나 아이템 클릭 시 상세 모달을 먼저 엽니다.
-                        onAiAnalyze={() => handleOpenDetail(note)} // 리스트의 AI 버튼도 상세로 진입하게 유도
+                        onEdit={() => handleOpenDetail(note)} 
+                        onAiAnalyze={() => handleOpenDetail(note)}
                     />
                 ))}
             </div>

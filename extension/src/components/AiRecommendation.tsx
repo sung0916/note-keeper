@@ -45,7 +45,6 @@ export default function AiRecommendation({ noteId, pageUrl, selectedText }:
                     keywords: keywords
                 });
             } else {
-                // 백엔드에서 에러 메시지를 보낸 경우
                 alert(data.error || "AI 분석에 실패했습니다.");
             }
         } catch (e) {
@@ -69,9 +68,9 @@ export default function AiRecommendation({ noteId, pageUrl, selectedText }:
                 summary: result.summary,
                 source: result.source
             });
-
             if (error) throw error;
-            setResult(null);  // 저장 후 초기화
+
+            setResult(null);
 
         } catch (e) {
             console.error(e);
@@ -103,7 +102,7 @@ export default function AiRecommendation({ noteId, pageUrl, selectedText }:
                             {result.summary}
                         </p>
 
-                        {/* 키워드 태그 보여주기 (추가됨) */}
+                        {/* 키워드 태그 */}
                         {result.keywords && result.keywords.length > 0 && (
                             <div className="mt-3 flex flex-wrap gap-1">
                                 {result.keywords.map((keyword, idx) => (

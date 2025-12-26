@@ -30,7 +30,7 @@ export default function NoteDetailModal({ note, onClose, onEdit }: NoteDetailMod
         <>
             <div className="absolute inset-0 z-40 bg-white flex flex-col animate-in slide-in-from-right duration-300">
                 
-                {/* 1. 상단 네비게이션 */}
+                {/* 상단 네비 */}
                 <div className="flex items-center justify-between p-4 border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
                     <button onClick={onClose} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors">
                         <X size={24} className="text-gray-600" />
@@ -45,7 +45,7 @@ export default function NoteDetailModal({ note, onClose, onEdit }: NoteDetailMod
                     </div>
                 </div>
 
-                {/* 2. 메인 컨텐츠 (스크롤 영역) */}
+                {/* 메인 컨텐츠 */}
                 <div className="flex-1 overflow-y-auto p-5 pb-24 custom-scrollbar">
                     
                     {/* 제목 영역 */}
@@ -84,7 +84,7 @@ export default function NoteDetailModal({ note, onClose, onEdit }: NoteDetailMod
                         {note.content}
                     </div>
 
-                    {/* 댓글 영역 (Placeholder) */}
+                    {/* 의견 공유 영역 */}
                     <div className="mt-8">
                         <h3 className="text-sm font-bold text-gray-900 mb-4">Comments (0)</h3>
                         <div className="flex gap-3 items-start">
@@ -103,7 +103,7 @@ export default function NoteDetailModal({ note, onClose, onEdit }: NoteDetailMod
                     </div>
                 </div>
 
-                {/* 3. Floating Action Button (AI) */}
+                {/* AI 추천 버튼 */}
                 <button
                     onClick={handleAiClick}
                     disabled={isAiLoading}
@@ -118,7 +118,7 @@ export default function NoteDetailModal({ note, onClose, onEdit }: NoteDetailMod
                 </button>
             </div>
 
-            {/* AI 결과 모달 (Floating Button 클릭 시 뜸) */}
+            {/* AI 결과 */}
             {aiResult && (
                 <AiResultModal
                     noteId={note.note_id}

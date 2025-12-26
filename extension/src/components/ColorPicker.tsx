@@ -2,18 +2,18 @@ import { RotateCcw } from "lucide-react";
 import { useState } from "react";
 
 const PALETTE = [
-  '#FFF59D', '#FFE082', '#FFCC80', '#FFAB91', // Yellow, Beige, Orange, Salmon
-  '#E6EE9C', '#A5D6A7', '#80CBC4', '#81D4FA', // Lime, Green, Teal, Sky
-  '#9FA8DA', '#CE93D8', '#F48FB1', '#FFAB91', // Indigo, Purple, Pink, Rose
-  '#BCAAA4', '#D7CCC8', '#E0E0E0', '#546E7A', // Brown, Tan, Grey, BlueGrey
+  '#FFF59D', '#FFE082', '#FFCC80', '#FFAB91', 
+  '#E6EE9C', '#A5D6A7', '#80CBC4', '#81D4FA', 
+  '#9FA8DA', '#CE93D8', '#F48FB1', '#FFAB91', 
+  '#BCAAA4', '#D7CCC8', '#E0E0E0', '#546E7A', 
 ];
 
 interface ColorPickerProps {
   icon: React.ReactNode;
   selectedColor: string;
   onSelect: (color: string) => void;
-  defaultColor: string; // '기본' 버튼 눌렀을 때 돌아갈 색 (흰색 or 검정)
-  label: string; // 툴팁이나 설명용
+  defaultColor: string; // '기본' 버튼 눌렀을 때 돌아갈 색
+  label: string; // 설명
 }
 
 export default function ColorPicker({ icon, selectedColor, onSelect, defaultColor, label }: ColorPickerProps) {
@@ -26,7 +26,7 @@ export default function ColorPicker({ icon, selectedColor, onSelect, defaultColo
         onClick={() => setIsOpen(!isOpen)}
         className="p-2 rounded-lg border hover:bg-gray-50 transition-colors flex items-center justify-center relative"
         title={label}
-        style={{ borderColor: selectedColor !== defaultColor ? selectedColor : '#e5e7eb' }} // 선택된 색으로 테두리 표시
+        style={{ borderColor: selectedColor !== defaultColor ? selectedColor : '#e5e7eb' }}
       >
         {icon}
         {/* 선택된 색상이 기본색이 아니면 작은 점으로 표시 */}
@@ -38,15 +38,15 @@ export default function ColorPicker({ icon, selectedColor, onSelect, defaultColo
         )}
       </button>
 
-      {/* 2. 팔레트 모달 (팝업) */}
+      {/* 팔레트 모달 */}
       {isOpen && (
         <>
-          {/* 외부 클릭 시 닫기 위한 투명 배경 */}
+          {/* 외부 클릭 시 닫기 */}
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
           
           <div className="absolute left-0 bottom-full mb-2 w-48 bg-white border rounded-xl shadow-xl z-20 p-3 animate-in slide-in-from-bottom-2 fade-in duration-200">
             
-            {/* 색상 그리드 (4x4) */}
+            {/* 색상 그리드 */}
             <div className="grid grid-cols-4 gap-2 mb-3">
               {PALETTE.map((color) => (
                 <button
@@ -61,7 +61,6 @@ export default function ColorPicker({ icon, selectedColor, onSelect, defaultColo
               ))}
             </div>
 
-            {/* 하단 '기본' 초기화 버튼 */}
             <button
               onClick={() => {
                 onSelect(defaultColor);

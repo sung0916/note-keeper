@@ -30,7 +30,7 @@ export default function NoteItem({ note, onDelete, onEdit, onAiAnalyze }: NoteIt
                 borderColor: note.bg_color && note.bg_color !== '#ffffff' ? 'transparent' : '#e5e7eb'
             }}
         >
-            {/* 1. 상단 헤더 (항상 보임) */}
+            {/* 상단 헤더 */}
             <div
                 className="p-4 flex items-center justify-between cursor-pointer"
                 onClick={() => setIsExpanded(!isExpanded)}
@@ -43,7 +43,7 @@ export default function NoteItem({ note, onDelete, onEdit, onAiAnalyze }: NoteIt
                     >
                         {note.title || "제목 없음"}
                     </h3>
-                    {/* 날짜 (접혀있을 때만 보임 - 선택사항) */}
+                    {/* 날짜 */}
                     {!isExpanded && (
                         <span
                             className="text-[10px] mt-1 opacity-60"
@@ -54,7 +54,7 @@ export default function NoteItem({ note, onDelete, onEdit, onAiAnalyze }: NoteIt
                     )}
                 </div>
 
-                {/* 펼치기/접기 아이콘 */}
+                {/* 펼치기 아이콘 */}
                 <button className="p-1 rounded-full hover:bg-black/5 transition-colors">
                     {isExpanded ? (
                         <ChevronUp size={20} style={{ color: note.text_color || '#000000' }} />
@@ -64,7 +64,7 @@ export default function NoteItem({ note, onDelete, onEdit, onAiAnalyze }: NoteIt
                 </button>
             </div>
 
-            {/* 2. 확장 영역 (내용 + 버튼들) */}
+            {/* 확장 (내용, 버튼) */}
             {isExpanded && (
                 <div className="px-4 pb-4 animate-in slide-in-from-top-2 duration-200">
 
@@ -81,10 +81,9 @@ export default function NoteItem({ note, onDelete, onEdit, onAiAnalyze }: NoteIt
                         style={{ backgroundColor: note.text_color || '#000000' }}
                     />
 
-                    {/* 하단 액션 버튼들 */}
                     <div className="flex items-center justify-between">
 
-                        {/* 왼쪽: 공유 버튼 */}
+                        {/* 공유 버튼 */}
                         <button
                             className="p-2 rounded-lg hover:bg-black/10 transition-colors"
                             title="공유하기"
@@ -93,7 +92,7 @@ export default function NoteItem({ note, onDelete, onEdit, onAiAnalyze }: NoteIt
                             <MessageSquareShare size={18} />
                         </button>
 
-                        {/* 오른쪽: 열기, AI, 삭제 */}
+                        {/* 메모 열기, AI, 삭제 */}
                         <div className="flex gap-1">
                             <button
                                 onClick={() => onEdit(note)}
@@ -127,7 +126,6 @@ export default function NoteItem({ note, onDelete, onEdit, onAiAnalyze }: NoteIt
                         </div>
                     </div>
 
-                    {/* 확장 시 하단 날짜 표시 */}
                     <div className="mt-2 text-right">
                         <span className="text-[10px] opacity-50" style={{ color: note.text_color || '#000000' }}>
                             {new Date(note.created_at).toLocaleString()}
