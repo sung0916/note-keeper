@@ -1,4 +1,4 @@
-📘 Note Keeper 진행상황
+📘 Note Keeper 진행상황 - test
 
 1. 🛠 기술 스택 (Tech Stack)
 - Monorepo 구조 (extension: 프론트엔드, server: 백엔드)
