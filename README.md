@@ -1,4 +1,4 @@
-📘 Note Keeper 진행상황
+📘 Note Keeper 진행상황 - test
 
 - 현재 메모장 모달 AI 추천 기능 구현 중🐒
 
