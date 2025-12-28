@@ -1,6 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
-import { supabase } from "../supabase";
+import { supabase } from "../../supabase";
 
 export default function AuthButton() {
     const [session, setSession] = useState<Session | null>(null);

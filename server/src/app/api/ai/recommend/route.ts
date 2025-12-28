@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: process.env.GROQ_API_KEY,
+    baseURL: "https://api.groq.com/openai/v1",
 });
 
 export async function POST(request: Request) {
@@ -19,11 +20,11 @@ export async function POST(request: Request) {
         if (authError || !user) {
             return NextResponse.json({ error: "유효하지 않은 사용자" }, { status: 401 });
         }
-        if (!process.env.OPENAI_API_KEY) {
+        if (!process.env.GROQ_API_KEY) {
             return NextResponse.json({ error: "AI 서비스 설정 오류" }, { status: 500 });
         }
 
-        const { text, url } = await request.json();  // 클라이언트가 보낸 데이터 받기
+        const { text, url, contextType } = await request.json();  // 클라이언트가 보낸 데이터 받기
         if (!text) {
             return NextResponse.json({ error: "텍스트 없음" }, { status: 400 });
         }
@@ -31,31 +32,40 @@ export async function POST(request: Request) {
         const truncatedText = text.length > 100 ? text.slice(0, 100) + "..." : text;
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo",
+            model: "llama-3.1-8b-instant",
             response_format: { type: "json_object" },
             messages: [
                 {
                     role: "system",
                     content: `
-                        You are a helpful assistant for a note-taking app.
-                        Analyze the user's selected text from a webpage.
+                        You are a research assistant.
+                        Analyze the provided text and recommend 5 relevant external resources (articles, documentation, or blog posts) that would help the user understand or expand on the topic.
                         
-                        Please provide the response in the following JSON format:
+                        The context is: ${contextType === 'comment' ? 'User Comment + Note Content' : 'Note Content only'}.
+                        
+                        Return a JSON object with a "recommendations" array containing 5 items.
+                        Each item must have:
+                        - "title": A clear, catchy title (in Korean).
+                        - "description": A short summary of what this resource contains (max 2 sentences, in Korean).
+                        - "url": A plausible URL (e.g., specific documentation or a valid-looking blog path). If unsure, use a Google Search URL query.
+                        - "category": e.g., "Tech", "Design", "News".
+
+                        Example Format:
                         {
-                        "summary": "A concise summary of the text in Korean (within 3 sentences).",
-                        "keywords": ["Keyword1", "Keyword2", "Keyword3"],
-                        "category": "The most relevant category (e.g., Tech, News, Health)."
+                          "recommendations": [
+                            {
+                              "title": "React 상태 관리 가이드",
+                              "description": "Redux와 Context API의 차이점을 설명합니다.",
+                              "url": "https://react.dev/learn/managing-state",
+                              "category": "Development"
+                            }
+                          ]
                         }
-                        
-                        Keep the tone professional and helpful.
                     `
                 },
                 {
                     role: "user",
-                    content: `
-                        [Source URL]: ${url}
-                        [Selected Text]: ${truncatedText}
-                    `
+                    content: `[Content]: ${truncatedText}`
                 },
             ],
         });
@@ -69,12 +79,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             success: true,
-            data: {
-                summary: parsedResult.summary,
-                keywords: parsedResult.keywords,
-                category: parsedResult.category,
-                url: url
-            }
+            data: { recommendations: parsedResult.recommendations }
         });
 
     } catch (err: any) {
