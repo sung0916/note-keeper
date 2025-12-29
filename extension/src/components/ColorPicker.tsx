@@ -2,10 +2,10 @@ import { RotateCcw } from "lucide-react";
 import { useState } from "react";
 
 const PALETTE = [
-  '#FFF59D', '#FFE082', '#FFCC80', '#FFAB91', 
-  '#E6EE9C', '#A5D6A7', '#80CBC4', '#81D4FA', 
-  '#9FA8DA', '#CE93D8', '#F48FB1', '#FFAB91', 
-  '#BCAAA4', '#D7CCC8', '#E0E0E0', '#546E7A', 
+  '#FFF59D', '#FFE082', '#FFCC80', '#FFAB91',
+  '#E6EE9C', '#A5D6A7', '#80CBC4', '#81D4FA',
+  '#9FA8DA', '#CE93D8', '#F48FB1', '#FFAB91',
+  '#BCAAA4', '#D7CCC8', '#E0E0E0', '#546E7A',
 ];
 
 interface ColorPickerProps {
@@ -31,8 +31,8 @@ export default function ColorPicker({ icon, selectedColor, onSelect, defaultColo
         {icon}
         {/* 선택된 색상이 기본색이 아니면 작은 점으로 표시 */}
         {selectedColor !== defaultColor && (
-          <span 
-            className="absolute top-1 right-1 w-2 h-2 rounded-full border border-gray-300" 
+          <span
+            className="absolute top-1 right-1 w-2 h-2 rounded-full border border-gray-300"
             style={{ backgroundColor: selectedColor }}
           />
         )}
@@ -43,9 +43,9 @@ export default function ColorPicker({ icon, selectedColor, onSelect, defaultColo
         <>
           {/* 외부 클릭 시 닫기 */}
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          
+
           <div className="absolute left-0 bottom-full mb-2 w-48 bg-white border rounded-xl shadow-xl z-20 p-3 animate-in slide-in-from-bottom-2 fade-in duration-200">
-            
+
             {/* 색상 그리드 */}
             <div className="grid grid-cols-4 gap-2 mb-3">
               {PALETTE.map((color) => (

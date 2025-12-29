@@ -1,21 +1,32 @@
-import { useState } from "react";
-import { supabase } from "../supabase";
+import { useEffect, useState } from "react";
+import { supabase } from "../../supabase";
 import { Palette, Save, Type, X } from "lucide-react";
-import ColorPicker from "./ColorPicker";
+import ColorPicker from "../ColorPicker";
+import type { Note } from "../../types";
 
 interface NoteModalPropts {
     pageUrl: string;
     pageTitle: string;
     onClose: () => void;
     onNoteSaved: () => void;
+    noteToEdit?: Note | null;
 }
 
-export default function NoteModal({ pageUrl, pageTitle, onClose, onNoteSaved }: NoteModalPropts) {
+export default function NoteModal({ pageUrl, pageTitle, onClose, onNoteSaved, noteToEdit }: NoteModalPropts) {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [bgColor, setBgColor] = useState('#FFFFFF');
     const [textColor, setTextColor] = useState('#000000');
     const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        if (noteToEdit) {
+            setTitle(noteToEdit.title);
+            setContent(noteToEdit.content);
+            setBgColor(noteToEdit.bg_color || '#FFFFFF');
+            setTextColor(noteToEdit.text_color || '#000000');
+        }
+    }, [noteToEdit]);
 
     const handleSave = async () => {
         if (!title.trim() || !content.trim()) return;
@@ -25,14 +36,33 @@ export default function NoteModal({ pageUrl, pageTitle, onClose, onNoteSaved }: 
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            const { error } = await supabase.from('notes').insert({
-                page_url: pageUrl,
-                title: title,
-                content: content,
-                writer_id: session.user.id,
-                bg_color: bgColor,
-                text_color: textColor,
-            });
+            let error;
+            if (noteToEdit) {
+                const { error: updateError } = await supabase
+                    .from('notes')
+                    .update({
+                        title,
+                        content,
+                        bg_color: bgColor,
+                        text_color: textColor,
+                    })
+                    .eq('note_id', noteToEdit.note_id);
+                error = updateError;
+
+            } else {
+                const { error: insertError } = await supabase
+                    .from('notes')
+                    .insert({
+                        page_url: pageUrl,
+                        page_title: pageTitle,
+                        title: title,
+                        content: content,
+                        writer_id: session.user.id,
+                        bg_color: bgColor,
+                        text_color: textColor,
+                    });
+                error = insertError;
+            }
 
             if (error) throw error;
             onNoteSaved();
@@ -48,11 +78,12 @@ export default function NoteModal({ pageUrl, pageTitle, onClose, onNoteSaved }: 
                 {/* 모달 헤더 */}
                 <div className="flex items-center justify-between p-4 border-b bg-white flex-shrink-0 gap-3">
                     <div className="flex items-center flex-1 min-w-0 overflow-hidden">
-                        <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded mr-2 flex-shrink-0">
-                            To
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded mr-2 flex-shrink-0 ${noteToEdit ? "text-purple-600 bg-purple-50" : "text-blue-600 bg-blue-50"
+                            }`}>
+                            {noteToEdit ? "Edit" : "To"}
                         </span>
-                        <h3 className="text-base font-bold text-gray-800 truncate leading-tight" title={pageUrl}>
-                            {pageTitle || "제목 없음"}
+                        <h3 className="text-base font-bold text-gray-800 truncate leading-tight">
+                            {noteToEdit ? "메모 수정" : (pageTitle || "제목 없음")}
                         </h3>
                     </div>
                     <button onClick={onClose} className="p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 rounded-full transition-colors flex-shrink-0">
@@ -71,7 +102,7 @@ export default function NoteModal({ pageUrl, pageTitle, onClose, onNoteSaved }: 
                         placeholder="제목을 입력하세요"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        style={{ color: textColor }} 
+                        style={{ color: textColor }}
                         autoFocus
                     />
                     <textarea
@@ -79,7 +110,7 @@ export default function NoteModal({ pageUrl, pageTitle, onClose, onNoteSaved }: 
                         placeholder="메모 내용을 입력하세요..."
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
-                        style={{ color: textColor }} 
+                        style={{ color: textColor }}
                     />
                 </div>
 
