@@ -54,6 +54,7 @@ export default function NoteModal({ pageUrl, pageTitle, onClose, onNoteSaved, no
                     .from('notes')
                     .insert({
                         page_url: pageUrl,
+                        page_title: pageTitle,
                         title: title,
                         content: content,
                         writer_id: session.user.id,

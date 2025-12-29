@@ -185,7 +185,7 @@ export default function FriendListModal({ onClose, currentUser }: FriendListModa
                     <button onClick={handleClose} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors">
                         <ArrowLeft size={24} className="text-gray-800" />
                     </button>
-                    <h1 className="text-lg font-bold text-gray-900">친구</h1>
+                    <h1 className="text-lg font-bold text-gray-900">친구 목록</h1>
                 </div>
 
                 <div className="flex items-center gap-2">
