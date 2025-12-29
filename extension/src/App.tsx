@@ -93,16 +93,54 @@ function App() {
 
   // 메모 목록
   const fetchNotes = async () => {
+    if (!currentUrl || !session?.user?.id) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('notes')
-        .select('*, users(nickname, avatar_url, email)')
-        .eq('page_url', currentUrl)
-        .order('created_at', { ascending: false });
+      const userId = session.user.id;
 
-      if (error) throw error;
-      setNotes(data || []);
+      // 1. 내가 작성한 메모 (현재 URL)
+      const { data: myNotes, error: myError } = await supabase
+        .from('notes')
+        .select('*, users:writer_id(nickname, avatar_url, email)')
+        .eq('page_url', currentUrl)
+        .eq('writer_id', userId);
+
+      if (myError) throw myError;
+
+      let allNotes = [...(myNotes || [])];
+
+      // 2. 공유받은 메모 가져오기 (실패해도 내 메모는 보여야 함)
+      try {
+        const { data: sharedRelations, error: sharedError } = await supabase
+          .from('note_shares')
+          .select('note_id')
+          .eq('guest_id', userId)
+          .eq('status', 'ACCEPTED');
+
+        if (sharedError) throw sharedError;
+
+        const sharedNoteIds = sharedRelations?.map(r => r.note_id) || [];
+
+        // 3. 공유받은 메모가 있다면 현재 URL에 해당하는 것만 필터링해서 가져오기
+        if (sharedNoteIds.length > 0) {
+          const { data: sharedNotes, error: fetchSharedError } = await supabase
+            .from('notes')
+            .select('*, users:writer_id(nickname, avatar_url, email)')
+            .eq('page_url', currentUrl)
+            .in('note_id', sharedNoteIds);
+
+          if (fetchSharedError) throw fetchSharedError;
+          if (sharedNotes) {
+            allNotes = [...allNotes, ...sharedNotes];
+          }
+        }
+      } catch (sharedErr) {
+        console.warn("공유 메모 불러오기 실패 (무시됨):", sharedErr);
+      }
+
+      // 날짜 순 정렬
+      allNotes.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setNotes(allNotes as any[]);
     }
     catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -206,6 +244,7 @@ function App() {
             selectedNotes={selectedNotes}
             onToggleSelect={toggleSelection}
             isSelectionMode={isSelectionMode}
+            userId={session?.user?.id}
           />
 
           {/* 글쓰기 모달 */}

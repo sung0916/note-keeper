@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Note } from "../../types";
-import { BookOpen, Check, ChevronDown, MessageSquareShare, Sparkles, Trash2 } from "lucide-react";
+import { BookOpen, Check, ChevronDown, Share2, Sparkles, Trash2 } from "lucide-react";
 
 interface NoteItemProps {
     note: Note;
@@ -10,9 +10,10 @@ interface NoteItemProps {
     isSelected: boolean;
     onToggleSelect: () => void;
     isSelectionMode: boolean;
+    onShare: (note: Note) => void;
 }
 
-export default function NoteItem({ note, onDelete, onEdit, onAiAnalyze, isSelected, onToggleSelect, isSelectionMode }: NoteItemProps) {
+export default function NoteItem({ note, onDelete, onEdit, onAiAnalyze, isSelected, onToggleSelect, isSelectionMode, onShare }: NoteItemProps) {
     const [isExpanded, setIsExpanded] = useState(false);
 
     const formattedDate = new Date(note.created_at).toLocaleDateString('ko-KR', {
@@ -123,8 +124,9 @@ export default function NoteItem({ note, onDelete, onEdit, onAiAnalyze, isSelect
                                 className="p-2 rounded-lg hover:bg-black/10 transition-colors"
                                 title="공유하기"
                                 style={{ color: note.text_color || '#000000' }}
+                                onClick={() => onShare(note)}
                             >
-                                <MessageSquareShare size={18} />
+                                <Share2 size={18} />
                             </button>
 
                             <div className="flex gap-1">

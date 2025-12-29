@@ -3,6 +3,7 @@ import { supabase } from "../../supabase";
 import type { Note } from "../../types";
 import NoteItem from "./NoteItem";
 import NoteDetailModal from "./NoteDetailModal";
+import ShareMemoModal from "./ShareMemoModal";
 
 interface NoteListProps {
     notes: Note[];
@@ -12,19 +13,44 @@ interface NoteListProps {
     selectedNotes: Set<number>;
     onToggleSelect: (noteId: number) => void;
     isSelectionMode: boolean;
+    userId: string | null;
 }
 
-export default function NoteList({ notes, loading, onRefresh, onEditNote, selectedNotes, onToggleSelect, isSelectionMode }: NoteListProps) {
+export default function NoteList({ notes, loading, onRefresh, onEditNote, selectedNotes, onToggleSelect, isSelectionMode, userId }: NoteListProps) {
     const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+    const [sharingNoteId, setSharingNoteId] = useState<number | null>(null);
     const [autoAi, setAutoAi] = useState(false);
 
     const handleDelete = async (id: number) => {
-        if (!confirm('정말 메모를 삭제하시겠습니까?')) return;
+        const note = notes.find(n => n.note_id === id);
+        if (!note) return;
+
+        const isMyNote = note.writer_id === userId;
+        const message = isMyNote
+            ? '정말 메모를 삭제하시겠습니까?'
+            : '공유를 해제하시겠습니까? (원본 메모는 삭제되지 않습니다)';
+
+        if (!confirm(message)) return;
+
         try {
-            const { error } = await supabase.from('notes').delete().eq('note_id', id);
-            if (error) throw error;
+            if (isMyNote) {
+                const { error } = await supabase.from('notes').delete().eq('note_id', id);
+                if (error) throw error;
+            } else {
+                // 공유 해제 (shared_notes 테이블에서 삭제)
+                const { error } = await supabase
+                    .from('note_shares')
+                    .delete()
+                    .eq('note_id', id)
+                    .eq('guest_id', userId);
+
+                if (error) throw error;
+            }
             onRefresh();
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+            alert('삭제/해제 실패');
+        }
     }
 
     const handleOpenDetail = (note: Note) => {
@@ -69,6 +95,7 @@ export default function NoteList({ notes, loading, onRefresh, onEditNote, select
                         isSelected={selectedNotes.has(note.note_id)}
                         onToggleSelect={() => onToggleSelect(note.note_id)}
                         isSelectionMode={isSelectionMode}
+                        onShare={(note) => setSharingNoteId(note.note_id)}
                     />
                 ))}
             </div>
@@ -83,6 +110,15 @@ export default function NoteList({ notes, loading, onRefresh, onEditNote, select
                         setAutoAi(false);
                     }}
                     onEdit={handleEditRequest}
+                />
+            )}
+
+            {sharingNoteId && (
+                <ShareMemoModal
+                    isOpen={true}
+                    onClose={() => setSharingNoteId(null)}
+                    noteId={sharingNoteId}
+                    userId={userId}
                 />
             )}
         </>

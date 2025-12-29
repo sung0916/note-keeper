@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Note } from "../../types";
 import { supabase } from "../../supabase";
-import { ArrowLeft, Check, CheckSquare, ChevronDown, Copy, FileText, Folder, MoreVertical, Search, Trash2, X } from "lucide-react";
+import { ArrowLeft, Check, CheckSquare, ChevronDown, Copy, FileText, Folder, Mail, MoreVertical, Search, Trash2, X, User } from "lucide-react";
 import NoteDetailModal from "../memo/NoteDetailModal";
 import NoteModal from "../memo/NoteModal";
 
@@ -23,11 +23,13 @@ export default function MemoListModal({ userId, currentUrl, currentPageTitle, on
     const [isClosing, setIsClosing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [notes, setNotes] = useState<Note[]>([]);
-    
+    const [pendingNotes, setPendingNotes] = useState<any[]>([]); // 공유 대기 중인 메모
+    const [isInboxExpanded, setIsInboxExpanded] = useState(false);
+
     // UI States
     const [searchText, setSearchText] = useState("");
     const [showMenu, setShowMenu] = useState(false);
-    const [isSelectionMode, setIsSelectionMode] = useState(false); 
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedNotes, setSelectedNotes] = useState<Set<number>>(new Set());
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
     const [selectedDetailNote, setSelectedDetailNote] = useState<Note | null>(null);
@@ -37,16 +39,44 @@ export default function MemoListModal({ userId, currentUrl, currentPageTitle, on
     const fetchNotes = async () => {
         setIsLoading(true);
         try {
-            // users 테이블 정보를 함께 가져오도록
-            const { data, error } = await supabase
+            // 1. 내가 작성한 메모 가져오기
+            const { data: myNotes, error: myError } = await supabase
                 .from('notes')
-                .select('*, users(nickname, avatar_url, email)') 
-                .eq('writer_id', userId)
-                .order('created_at', { ascending: false });
+                .select('*, users:writer_id(nickname, avatar_url, email)')
+                .eq('writer_id', userId);
 
-            if (error) throw error;
-            // 타입 캐스팅
-            setNotes(data as any || []);
+            if (myError) throw myError;
+
+            // 2. 내가 수락한 공유 메모 ID들 가져오기
+            const { data: sharedRelations, error: sharedError } = await supabase
+                .from('note_shares')
+                .select('note_id')
+                .eq('guest_id', userId)
+                .eq('status', 'ACCEPTED');
+
+            if (sharedError) throw sharedError;
+
+            const sharedNoteIds = sharedRelations?.map(r => r.note_id) || [];
+
+            let allNotes = [...(myNotes || [])];
+
+            // 3. 공유받은 메모가 있다면 추가로 가져와서 합치기
+            if (sharedNoteIds.length > 0) {
+                const { data: sharedNotes, error: fetchSharedError } = await supabase
+                    .from('notes')
+                    .select('*, users:writer_id(nickname, avatar_url, email)')
+                    .in('note_id', sharedNoteIds);
+
+                if (fetchSharedError) throw fetchSharedError;
+                if (sharedNotes) {
+                    allNotes = [...allNotes, ...sharedNotes];
+                }
+            }
+
+            // 날짜 순 정렬
+            allNotes.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+            setNotes(allNotes as any[]);
         } catch (e) {
             console.error("메모 불러오기 실패:", e);
         } finally {
@@ -54,26 +84,52 @@ export default function MemoListModal({ userId, currentUrl, currentPageTitle, on
         }
     };
 
+    const fetchPendingNotes = async () => {
+        if (!userId) return;
+        try {
+            const { data, error } = await supabase
+                .from('note_shares')
+                .select(`
+                    share_id,
+                    note:notes (
+                        title,
+                        created_at,
+                        writer:writer_id (
+                            nickname
+                        )
+                    )
+                `)
+                .eq('guest_id', userId)
+                .eq('status', 'PENDING');
+
+            if (error) throw error;
+            setPendingNotes(data || []);
+        } catch (e) {
+            console.error("공유 대기 메모 불러오기 실패:", e);
+        }
+    };
+
     useEffect(() => {
         fetchNotes();
+        fetchPendingNotes();
     }, [userId]);
 
     // 2. 그룹화 및 검색 로직
     const groupedNotes = useMemo(() => {
         const filtered = notes.filter(n =>
-            (n.title && n.title.toLowerCase().includes(searchText.toLowerCase())) || 
+            (n.title && n.title.toLowerCase().includes(searchText.toLowerCase())) ||
             n.content.toLowerCase().includes(searchText.toLowerCase())
         );
 
         return filtered.reduce<GroupedNotes>((acc, note) => {
             const url = note.page_url;
-            
+
             if (!acc[url]) {
-                let displayTitle = url; 
+                let displayTitle = url;
 
                 if (currentUrl && url === currentUrl && currentPageTitle) {
                     displayTitle = currentPageTitle;
-                } 
+                }
                 else if ((note as any).page_title) {
                     displayTitle = (note as any).page_title;
                 }
@@ -135,6 +191,39 @@ export default function MemoListModal({ userId, currentUrl, currentPageTitle, on
         alert("URL이 복사되었습니다.");
     };
 
+    const handleAcceptShare = async (shareId: number) => {
+        try {
+            const { error } = await supabase
+                .from('note_shares')
+                .update({ status: 'ACCEPTED' })
+                .eq('share_id', shareId);
+
+            if (error) throw error;
+
+            alert("공유를 수락했습니다.");
+            setPendingNotes(prev => prev.filter(n => n.share_id !== shareId));
+            fetchNotes(); // 목록 갱신
+        } catch (e) {
+            console.error("수락 실패:", e);
+        }
+    };
+
+    const handleRejectShare = async (shareId: number) => {
+        if (!confirm("공유를 거절하시겠습니까?")) return;
+        try {
+            const { error } = await supabase
+                .from('note_shares')
+                .delete()
+                .eq('share_id', shareId);
+
+            if (error) throw error;
+
+            setPendingNotes(prev => prev.filter(n => n.id !== shareId));
+        } catch (e) {
+            console.error("거절 실패:", e);
+        }
+    };
+
     const handleDeleteAll = async () => {
         if (notes.length === 0) return;
         if (!confirm("정말 모든 메모를 삭제하시겠습니까?")) return;
@@ -165,13 +254,13 @@ export default function MemoListModal({ userId, currentUrl, currentPageTitle, on
 
     // 수정 요청
     const handleEditRequest = (note: Note) => {
-        setSelectedDetailNote(null); 
-        setNoteToEdit(note);       
+        setSelectedDetailNote(null);
+        setNoteToEdit(note);
     };
 
     return (
         <div className={`absolute inset-0 z-50 bg-white flex flex-col ${isClosing ? "animate-slide-out" : "animate-slide-in"}`}>
-            
+
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b bg-white sticky top-0 z-10">
                 <div className="flex items-center gap-3">
@@ -238,6 +327,68 @@ export default function MemoListModal({ userId, currentUrl, currentPageTitle, on
 
                 {/* Grouped Lists */}
                 <div className="divide-y divide-gray-100">
+                    {/* Inbox Section */}
+                    {pendingNotes.length > 0 && !isSelectionMode && !searchText && (
+                        <div className="bg-white border-b-8 border-gray-50">
+                            <div
+                                onClick={() => setIsInboxExpanded(!isInboxExpanded)}
+                                className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <div className="relative">
+                                        <Mail size={18} className="text-orange-500" />
+                                        <span className="absolute -top-1 -right-1 flex w-2.5 h-2.5">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                                        </span>
+                                    </div>
+                                    <span className="font-bold text-sm text-gray-800">공유 대기 중</span>
+                                    <span className="bg-orange-100 text-orange-600 text-xs px-1.5 py-0.5 rounded-full font-bold">
+                                        {pendingNotes.length}
+                                    </span>
+                                </div>
+                                <ChevronDown size={18} className={`text-gray-400 transition-transform duration-200 ${isInboxExpanded ? 'rotate-180' : ''}`} />
+                            </div>
+
+                            {/* Pending List */}
+                            <div className={`overflow-hidden transition-[max-height] duration-300 ease-in-out ${isInboxExpanded ? "max-h-[500px]" : "max-h-0"}`}>
+                                <div className="divide-y divide-gray-50 bg-orange-50/30">
+                                    {pendingNotes.map((item) => (
+                                        <div key={item.share_id} className="p-4 flex items-center justify-between gap-3">
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="font-bold text-sm text-gray-900 truncate">
+                                                        {item.note?.title || "제목 없음"}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                                    <User size={10} />
+                                                    <span>{item.note?.writer?.nickname || "알 수 없는 사용자"}</span>
+                                                    <span className="text-gray-300">|</span>
+                                                    <span>{new Date(item.note?.created_at).toLocaleDateString()}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                                <button
+                                                    onClick={() => handleAcceptShare(item.share_id)}
+                                                    className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-lg shadow-sm transition-colors"
+                                                >
+                                                    수락
+                                                </button>
+                                                <button
+                                                    onClick={() => handleRejectShare(item.share_id)}
+                                                    className="px-3 py-1.5 bg-white border border-gray-200 hover:bg-gray-100 text-gray-600 text-xs font-bold rounded-lg transition-colors"
+                                                >
+                                                    거절
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {isLoading ? (
                         <div className="p-8 text-center text-gray-400 text-sm">로딩 중...</div>
                     ) : groupKeys.length === 0 ? (
@@ -252,11 +403,10 @@ export default function MemoListModal({ userId, currentUrl, currentPageTitle, on
 
                             return (
                                 <div key={pageUrl} className="bg-white">
-                                    <div 
+                                    <div
                                         onClick={() => toggleGroupExpand(pageUrl)}
-                                        className={`px-4 py-3 border-y border-gray-100 flex items-center justify-between cursor-pointer transition-colors ${
-                                            isCurrentPage ? "bg-blue-50/60" : "bg-gray-50 hover:bg-gray-100"
-                                        }`}
+                                        className={`px-4 py-3 border-y border-gray-100 flex items-center justify-between cursor-pointer transition-colors ${isCurrentPage ? "bg-blue-50/60" : "bg-gray-50 hover:bg-gray-100"
+                                            }`}
                                     >
                                         <div className="flex items-center gap-2 min-w-0 flex-1">
                                             <Folder size={15} className={`${isCurrentPage ? "text-blue-600" : "text-gray-400"} flex-shrink-0`} />
@@ -267,7 +417,7 @@ export default function MemoListModal({ userId, currentUrl, currentPageTitle, on
                                                 ({group.notes.length})
                                             </span>
                                         </div>
-                                        
+
                                         <div className="flex items-center gap-3">
                                             <button
                                                 onClick={(e) => handleCopyUrl(e, pageUrl)}
@@ -285,12 +435,11 @@ export default function MemoListModal({ userId, currentUrl, currentPageTitle, on
                                     <div className={`overflow-hidden transition-[max-height] duration-300 ease-in-out ${isExpanded ? "max-h-[1000px]" : "max-h-0"}`}>
                                         <div className="divide-y divide-gray-50 bg-white pl-4">
                                             {group.notes.map((note) => (
-                                                <div 
-                                                    key={note.note_id} 
-                                                    onClick={() => isSelectionMode ? toggleSelect({ stopPropagation: () => {} } as any, note.note_id) : handleNoteClick(note)}
-                                                    className={`pr-4 py-3 flex items-center justify-between gap-3 transition-colors group ${
-                                                        isSelectionMode ? "cursor-pointer" : "cursor-pointer hover:bg-gray-50"
-                                                    }`}
+                                                <div
+                                                    key={note.note_id}
+                                                    onClick={() => isSelectionMode ? toggleSelect({ stopPropagation: () => { } } as any, note.note_id) : handleNoteClick(note)}
+                                                    className={`pr-4 py-3 flex items-center justify-between gap-3 transition-colors group ${isSelectionMode ? "cursor-pointer" : "cursor-pointer hover:bg-gray-50"
+                                                        }`}
                                                 >
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2">
@@ -305,7 +454,7 @@ export default function MemoListModal({ userId, currentUrl, currentPageTitle, on
                                                     </div>
 
                                                     {isSelectionMode && (
-                                                        <div 
+                                                        <div
                                                             className="flex-shrink-0 p-1"
                                                             onClick={(e) => toggleSelect(e, note.note_id)}
                                                         >
@@ -341,11 +490,10 @@ export default function MemoListModal({ userId, currentUrl, currentPageTitle, on
                     <button
                         onClick={handleDeleteSelected}
                         disabled={selectedNotes.size === 0}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-2 ${
-                            selectedNotes.size > 0 
-                                ? "bg-red-500 hover:bg-red-600 text-white" 
-                                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        }`}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-2 ${selectedNotes.size > 0
+                            ? "bg-red-500 hover:bg-red-600 text-white"
+                            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            }`}
                     >
                         <Trash2 size={16} />
                         <span>삭제 ({selectedNotes.size})</span>
@@ -374,7 +522,7 @@ export default function MemoListModal({ userId, currentUrl, currentPageTitle, on
                     onClose={() => setNoteToEdit(null)}
                     onNoteSaved={() => {
                         setNoteToEdit(null);
-                        fetchNotes(); 
+                        fetchNotes();
                     }}
                 />
             )}

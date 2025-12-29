@@ -56,11 +56,10 @@ export interface SearchUserResult {
 }
 
 export interface SharedNote {
-    id: number;
+    share_id: number;
     note_id: number;
-    sender_id: string;
-    receiver_id: string;
-    status: 'pending' | 'accepted' | 'rejected';
+    guest_id: string; // receiver
+    status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
     permission: 'view' | 'edit';
 }
 

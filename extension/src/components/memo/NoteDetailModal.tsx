@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { type Note } from "../../types";
-import { Bookmark, ChevronDown, Edit2, List, MessageSquare, Send, Share2, ShieldBan, ShieldCheck, Sparkles, User, UserCircle2, UserMinus, UserPlus, X } from "lucide-react";
+import { Bookmark, ChevronDown, Edit2, List, MessageSquare, Send, Share2, ShieldBan, ShieldCheck, Sparkles, User, UserCircle2, UserMinus, UserPlus, X, Users } from "lucide-react";
 import { supabase } from "../../supabase";
 import AiRecommendationList from "../AiRecommendationList";
 import ImageViewerModal from "../common/ImageViewerModal";
@@ -8,6 +8,8 @@ import { useNoteComments } from "../../hooks/useNoteComments";
 import { useNoteAi } from "../../hooks/useNoteAi";
 import { useFriendship } from "../../hooks/useFriendship";
 import CommentItem from "../comment/CommentItem";
+import ShareMemoModal from "./ShareMemoModal";
+import ParticipantsModal from "./ParticipantsModal";
 
 interface NoteDetailModalProps {
     note: Note;
@@ -22,6 +24,8 @@ export default function NoteDetailModal({ note, autoTriggerAi = false, onClose, 
     const [userId, setUserId] = useState<string | null>(null);
     const [isImageModalOpen, setIsImageModalOpen] = useState(false);
     const [isAuthorMenuOpen, setIsAuthorMenuOpen] = useState(false);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [isParticipantsModalOpen, setIsParticipantsModalOpen] = useState(false); // 참여자 모달 상태
     const [viewingImage, setViewingImage] = useState<{ url: string; uid: string } | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const isMe = userId === note.writer_id;
@@ -112,10 +116,25 @@ export default function NoteDetailModal({ note, autoTriggerAi = false, onClose, 
                             <MessageSquare size={12} />
                             <span>Comments ({comments.length})</span>
                         </div>
+
+                        {/* 참여자 아이콘 추가 */}
+                        <div
+                            className="flex items-center gap-1 text-gray-400 hover:text-gray-800 transition-colors cursor-pointer"
+                            title="참여자 목록"
+                            onClick={() => setIsParticipantsModalOpen(true)}
+                        >
+                            <Users size={18} />
+                        </div>
+
                         {isMe && (
-                            <button onClick={() => onEdit(note)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-full">
-                                <Edit2 size={20} />
-                            </button>
+                            <>
+                                <button onClick={() => setIsShareModalOpen(true)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-full" title="공유하기">
+                                    <Share2 size={20} />
+                                </button>
+                                <button onClick={() => onEdit(note)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-full" title="수정하기">
+                                    <Edit2 size={20} />
+                                </button>
+                            </>
                         )}
                     </div>
                 </div>
@@ -269,7 +288,11 @@ export default function NoteDetailModal({ note, autoTriggerAi = false, onClose, 
                 <div className={`border-t bg-white p-3 shadow-sm z-20 transition-all duration-300 ${isComposing ? "h-32" : "h-[76px]"}`}>
                     <div className="relative w-full h-full flex gap-2 items-start">
                         <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 mt-1">
-                            <UserCircle2 className="w-full h-full text-gray-400" />
+                            {authorAvatar ? (
+                                <img src={authorAvatar} alt="profile" className="w-full h-full object-cover rounded-full" />
+                            ) : (
+                                <UserCircle2 size={40} className="text-gray-400" />
+                            )}
                         </div>
                         <div className="flex-1 relative h-full">
                             <textarea
@@ -284,7 +307,7 @@ export default function NoteDetailModal({ note, autoTriggerAi = false, onClose, 
                             <button
                                 onClick={handleSendClick}
                                 disabled={!commentText.trim() || isSending}
-                                className={`absolute right-2 p-1.5 rounded-full transition-all ${commentText.trim() ? "bg-blue-500 text-white" : "bg-gray-300 text-gray-500"} ${isComposing ? "bottom-3" : "top-1"}`}
+                                className={`absolute mt-1.5 right-2 p-1.5 rounded-full transition-all ${commentText.trim() ? "bg-blue-500 text-white" : "bg-gray-300 text-gray-500"} ${isComposing ? "bottom-3" : "top-1"}`}
                             >
                                 <Send size={14} />
                             </button>
@@ -302,6 +325,19 @@ export default function NoteDetailModal({ note, autoTriggerAi = false, onClose, 
                     onImageUpdated={() => window.location.reload()}
                 />
             )}
+
+            <ShareMemoModal
+                isOpen={isShareModalOpen}
+                onClose={() => setIsShareModalOpen(false)}
+                noteId={note.note_id}
+                userId={userId}
+            />
+
+            <ParticipantsModal
+                isOpen={isParticipantsModalOpen}
+                onClose={() => setIsParticipantsModalOpen(false)}
+                note={note}
+            />
         </>
     );
 }
