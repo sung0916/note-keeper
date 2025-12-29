@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useFriendship } from "../../hooks/useFriendship";
-import { Bookmark, Check, Edit2, List, Share2, ShieldBan, ShieldCheck, Sparkles, Trash2, User, UserCircle2, UserMinus, UserPlus, XCircle } from "lucide-react";
+import { Bookmark, Check, Edit2, List, Share2, ShieldBan, ShieldCheck, Trash2, User, UserCircle2, UserMinus, UserPlus, XCircle } from "lucide-react";
 import type { Comment } from "../../types";
 
 interface CommentItemProps {
@@ -13,7 +13,6 @@ interface CommentItemProps {
     onSaveEdit: (commentId: number) => void;
     onCancelEdit: () => void;
     onDelete: (commentId: number) => void;
-    onAiClick: (text: string) => void;
     onImageClick: (url: string | undefined, userId: string | undefined) => void;
 }
 
@@ -27,7 +26,6 @@ export default function CommentItem({
     onSaveEdit,
     onCancelEdit,
     onDelete,
-    onAiClick,
     onImageClick
 }: CommentItemProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -167,9 +165,6 @@ export default function CommentItem({
 
             {/* Hover Actions */}
             <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity pt-1">
-                <button onClick={() => onAiClick(comment.content)} className="p-1 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded" title="AI 추천">
-                    <Sparkles size={14} />
-                </button>
                 {isMe && !isEditing && (
                     <>
                         <button onClick={() => onStartEdit(comment)} className="p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded">

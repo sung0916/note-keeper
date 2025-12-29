@@ -90,12 +90,6 @@ export default function NoteDetailModal({ note, autoTriggerAi = false, onClose, 
         else requestAi(note.content, 'note');
     };
 
-    // 코멘트 AI 버튼
-    const handleCommentAiClick = (commentContent: string) => {
-        const combinedText = `[Note Context]" ${note.content}\n\n[User Comment]: ${commentContent}`;
-        requestAi(combinedText, 'comment');
-    };
-
     // 친구 메뉴 닫기
     const closeFriendMenu = (action: () => void) => {
         action();
@@ -256,7 +250,6 @@ export default function NoteDetailModal({ note, autoTriggerAi = false, onClose, 
                                 onSaveEdit={saveEdit}
                                 onCancelEdit={() => setEditingCommentId(null)}
                                 onDelete={deleteComment}
-                                onAiClick={handleCommentAiClick}
                                 onImageClick={handleImageClick}
                             />
                         ))}
