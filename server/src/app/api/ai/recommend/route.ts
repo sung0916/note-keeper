@@ -112,7 +112,7 @@ export async function POST(request: Request) {
             data: { recommendations }
         });
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("AI/Naver Search Error:", err);
         let errorMessage = '알 수 없는 서버 오류입니다.';
         if (err instanceof Error) {  // 에러가 진짜 Error 객체인지 확인 후 메시지 추출
@@ -121,7 +121,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             error: '처리 중 오류가 발생했습니다.',
-            details: err.message
+            details: errorMessage
         }, { status: 500 });
     }
 }
