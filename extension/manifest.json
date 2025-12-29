@@ -20,6 +20,7 @@
     "type": "module"
   },
   "host_permissions": [
+    "https://note-keeper-nu.vercel.app/*",
     "https://*.supabase.co/*",
     "https://accounts.google.com/",
     "http://localhost:3000/*"

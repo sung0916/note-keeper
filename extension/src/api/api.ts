@@ -4,7 +4,7 @@ export async function getAiRecommendation(text: string, pageUrl: string) {
     const { data: { session } } = await supabase.auth.getSession(); 
     if (!session) { throw new Error("로그인이 필요합니다."); }
 
-    const response = await fetch('http://localhost:3000/api/ai/recommend', {
+    const response = await fetch('https://note-keeper-nu.vercel.app//api/ai/recommend', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
