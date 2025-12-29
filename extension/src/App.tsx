@@ -5,8 +5,11 @@ import NoteList from './components/memo/NoteList';
 import Header from './components/common/Header';
 import NoteModal from './components/memo/NoteModal';
 import ActionBar from './components/common/ActionBar';
+import SplashScreen from './components/common/SplashScreen';
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+  const [isFadingOut, setIsFadingOut] = useState(false);
   const [currentUrl, setCurrentUrl] = useState<string>('');
   const [pageTitle, setPageTitle] = useState<string>('');
   const [notes, setNotes] = useState<Note[]>([]);
@@ -18,6 +21,22 @@ function App() {
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [selectedNotes, setSelectedNotes] = useState<Set<number>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+
+  // 스플래시 화면
+  useEffect(() => {
+    const fadeTimer = setTimeout(() => {
+      setIsFadingOut(true);
+    }, 2000);
+
+    const removeTimer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2500);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(removeTimer);
+    };
+  }, []);
 
   // 초기 세션 및 URL 가져오기 & URL 감지
   useEffect(() => {
@@ -145,6 +164,10 @@ function App() {
 
   return (
     <div className="w-full h-[100vh] flex flex-col bg-white relative">
+
+      {/* 스플래시 화면 */}
+      {showSplash && <SplashScreen isFadingOut={isFadingOut} />}
+
       {/* 헤더 */}
       <Header
         session={session}
