@@ -4,6 +4,7 @@ import AuthButton from "./AuthButton";
 import ImageViewerModal from "./ImageViewerModal";
 import FriendListModal from "../user/FriendListModal";
 import MemoListModal from "../user/MemoListModal";
+import BookmarkListModal from "../user/BookmarkListModal";
 
 interface HeaderProps {
     session: any;
@@ -18,6 +19,7 @@ export default function Header({ session, pageTitle, currentUrl, onLogout }: Hea
     const [isImageModalOpen, setIsImageModalOpen] = useState(false);
     const [isFriendModalOpen, setIsFriendModalOpen] = useState(false);
     const [isMemoModalOpen, setIsMemoModalOpen] = useState(false);
+    const [isBookmarkModalOpen, setIsBookmarkModalOpen] = useState(false);
 
     const handleCopyUrl = () => {
         navigator.clipboard.writeText(currentUrl);
@@ -93,7 +95,15 @@ export default function Header({ session, pageTitle, currentUrl, onLogout }: Hea
                                         >
                                             <List size={14} /> 메모 목록
                                         </button>
-                                        <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-2"><Bookmark size={14} /> 북마크</button>
+                                        <button 
+                                            onClick={() => {
+                                                setIsBookmarkModalOpen(true);
+                                                setIsMenuOpen(false);
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-2"
+                                        >
+                                            <Bookmark size={14} /> 북마크
+                                        </button>
                                         <div className="border-t my-1"></div>
                                         <button onClick={onLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"><LogOut size={14} /> 로그아웃</button>
                                     </div>
@@ -133,6 +143,14 @@ export default function Header({ session, pageTitle, currentUrl, onLogout }: Hea
                     currentUrl={currentUrl}   
                     currentPageTitle={pageTitle} 
                     onClose={() => setIsMemoModalOpen(false)}
+                />
+            )}
+
+            {/* 북마크 목록 모달 */}
+            {isBookmarkModalOpen && session?.user?.id && (
+                <BookmarkListModal
+                    userId={session.user.id}
+                    onClose={() => setIsBookmarkModalOpen(false)}
                 />
             )}
         </>
