@@ -47,14 +47,16 @@ export async function POST(request: Request) {
                         
                         TASK:
                         1. Analyze the given text (which might be in English or Korean).
-                        2. Identify the core topic.
-                        3. If the text is English, **TRANSLATE** the core topic into a natural **Korean** search keyword.
-                        4. Return ONLY the Korean keyword. No explanations.
+                        2. Identify the **user's specific intent**, **problem**, or **key question**.
+                        3. Create a **natural, long-tail Korean search query** that includes relevant context (e.g., error messages, specific constraints, "how to", "reason").
+                        4. Return ONLY the Korean query. No explanations.
                         
                         EXAMPLES:
-                        - Input: "How to use React useEffect" -> Output: "React useEffect 사용법"
-                        - Input: "The future of AI Search" -> Output: "AI 검색의 미래"
-                        - Input: "Pasta recipe" -> Output: "파스타 레시피"
+                        - Input: "How to use React useEffect" -> Output: "React useEffect 올바른 사용법"
+                        - Input: "Why is my React useEffect running twice in development?" -> Output: "React useEffect 두 번 실행 원인 및 해결"
+                        - Input: "The future of AI Search" -> Output: "AI 검색 기술의 미래 전망"
+                        - Input: "I want to cook pasta but I don't have cream" -> Output: "생크림 없이 파스타 만드는 법"
+                        - Input: "Error: undefined is not a function in map" -> Output: "자바스크립트 map undefined is not a function 에러 해결"
                     `
                 },
                 { role: "user", content: truncatedText },

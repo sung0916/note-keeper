@@ -22,8 +22,8 @@ export default function NoteItem({ note, onDelete, onEdit, onAiAnalyze, isSelect
         day: '2-digit'
     });
 
-    const displayContent = note.content.length > 100
-        ? note.content.slice(0, 100) + '...'
+    const displayContent = note.content.length > 50
+        ? note.content.slice(0, 50) + '...'
         : note.content;
 
     const handleDeleteClick = (e: React.MouseEvent) => {
