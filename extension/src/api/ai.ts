@@ -1,7 +1,9 @@
 import { supabase } from "../supabase";
 import type { AiAnalysisResult } from "../types";
 
-const API_BASE_URL = "https://note-keeper-nu.vercel.app";
+const API_BASE_URL = import.meta.env.DEV
+    ? "http://localhost:3000"
+    : "https://note-keeper-nu.vercel.app";
 
 export async function analyzeNoteWithAI(text: string, url: string, contextType: 'note' | 'comment'): Promise<AiAnalysisResult> {
     const { data: { session } } = await supabase.auth.getSession();

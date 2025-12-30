@@ -20,6 +20,8 @@ export default function Header({ session, pageTitle, currentUrl, onLogout }: Hea
     const [isFriendModalOpen, setIsFriendModalOpen] = useState(false);
     const [isMemoModalOpen, setIsMemoModalOpen] = useState(false);
     const [isBookmarkModalOpen, setIsBookmarkModalOpen] = useState(false);
+    const [updatedAvatar, setUpdatedAvatar] = useState<string | null>(null);
+    const [updatedNickname, setUpdatedNickname] = useState<string | null>(null);
 
     const handleCopyUrl = () => {
         navigator.clipboard.writeText(currentUrl);
@@ -30,7 +32,9 @@ export default function Header({ session, pageTitle, currentUrl, onLogout }: Hea
     const nickname = session?.user?.user_metadata?.full_name ||
         session?.user?.user_metadata?.name ||
         session?.user?.email?.split('@')[0] || 'User';
+    const currentNickname = updatedNickname || nickname;
     const avatarUrl = session?.user?.user_metadata?.avatar_url;
+    const currentAvatar = updatedAvatar || avatarUrl;
 
     return (
         <>
@@ -65,7 +69,7 @@ export default function Header({ session, pageTitle, currentUrl, onLogout }: Hea
                                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                                 className="flex items-center gap-1 text-sm text-gray-700 hover:bg-gray-100 px-2 py-1 rounded-md transition-colors"
                             >
-                                <span className="font-medium max-w-[80px] truncate">{nickname}</span>
+                                <span className="font-medium max-w-[80px] truncate">{currentNickname}</span>
                                 <ChevronDown size={14} className={`transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} />
                             </button>
 
@@ -75,7 +79,7 @@ export default function Header({ session, pageTitle, currentUrl, onLogout }: Hea
                                     <div className="absolute right-0 top-full mt-1 w-40 bg-white border rounded-lg shadow-xl z-20 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
                                         <div className="px-4 py-2 border-b bg-gray-50">
                                             <p className="text-xs text-gray-500">내 계정</p>
-                                            <p className="text-sm font-bold truncate">{nickname}</p>
+                                            <p className="text-sm font-bold truncate">{currentNickname}</p>
                                         </div>
                                         <button
                                             onClick={() => {
@@ -95,7 +99,7 @@ export default function Header({ session, pageTitle, currentUrl, onLogout }: Hea
                                         >
                                             <List size={14} /> 메모 목록
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => {
                                                 setIsBookmarkModalOpen(true);
                                                 setIsMenuOpen(false);
@@ -121,6 +125,7 @@ export default function Header({ session, pageTitle, currentUrl, onLogout }: Hea
                     isOwnProfile={true}
                     userId={session.user.id}
                     onClose={() => setIsImageModalOpen(false)}
+                    onImageUpdated={(newUrl) => setUpdatedAvatar(newUrl)}
                 />
             )}
 
@@ -128,9 +133,11 @@ export default function Header({ session, pageTitle, currentUrl, onLogout }: Hea
             {isFriendModalOpen && (
                 <FriendListModal
                     onClose={() => setIsFriendModalOpen(false)}
+                    onImageUpdated={(newUrl) => setUpdatedAvatar(newUrl)}
+                    onNicknameUpdated={(newName) => setUpdatedNickname(newName)}
                     currentUser={{
-                        name: nickname,
-                        avatarUrl: avatarUrl,
+                        name: currentNickname,
+                        avatarUrl: currentAvatar,
                         id: session?.user?.id
                     }}
                 />
@@ -140,8 +147,8 @@ export default function Header({ session, pageTitle, currentUrl, onLogout }: Hea
             {isMemoModalOpen && session?.user?.id && (
                 <MemoListModal
                     userId={session.user.id}
-                    currentUrl={currentUrl}   
-                    currentPageTitle={pageTitle} 
+                    currentUrl={currentUrl}
+                    currentPageTitle={pageTitle}
                     onClose={() => setIsMemoModalOpen(false)}
                 />
             )}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Note } from "../../types";
 import { supabase } from "../../supabase";
-import { ArrowLeft, Check, CheckSquare, ChevronDown, Copy, FileText, Folder, Mail, MoreVertical, Search, Trash2, X, User } from "lucide-react";
+import { ArrowLeft, Check, CheckSquare, ChevronDown, Copy, FileText, Folder, Mail, MoreVertical, Search, Trash2, X, UserCircle2 } from "lucide-react";
 import NoteDetailModal from "../memo/NoteDetailModal";
 import NoteModal from "../memo/NoteModal";
 
@@ -23,7 +23,16 @@ export default function MemoListModal({ userId, currentUrl, currentPageTitle, on
     const [isClosing, setIsClosing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [notes, setNotes] = useState<Note[]>([]);
-    const [pendingNotes, setPendingNotes] = useState<any[]>([]); // 공유 대기 중인 메모
+    // 공유 대기 목록 상태
+    const [pendingNotes, setPendingNotes] = useState<{
+        id: number;
+        noteId: number;
+        title: string;
+        senderName: string;
+        senderAvatar?: string;
+        createdAt: string;
+    }[]>([]);
+
     const [isInboxExpanded, setIsInboxExpanded] = useState(false);
 
     // UI States
@@ -87,23 +96,54 @@ export default function MemoListModal({ userId, currentUrl, currentPageTitle, on
     const fetchPendingNotes = async () => {
         if (!userId) return;
         try {
-            const { data, error } = await supabase
+            // 1. 차단한 유저 목록 가져오기
+            const { data: blockedData, error: blockedError } = await supabase
+                .from('friends')
+                .select('friend_id')
+                .eq('user_id', userId)
+                .eq('status', 'BLOCKED');
+
+            if (blockedError) throw blockedError;
+            const blockedUserIds = new Set(blockedData?.map(b => b.friend_id) || []);
+
+            // 2. 대기 중인 공유 목록 가져오기 (나에게 온 요청)
+            const { data: shares, error: sharesError } = await supabase
                 .from('note_shares')
                 .select(`
-                    share_id,
-                    note:notes (
+                    id,
+                    note_id,
+                    notes (
                         title,
                         created_at,
-                        writer:writer_id (
-                            nickname
+                        writer_id,
+                        users:writer_id (
+                            nickname,
+                            avatar_url
                         )
                     )
                 `)
                 .eq('guest_id', userId)
                 .eq('status', 'PENDING');
 
-            if (error) throw error;
-            setPendingNotes(data || []);
+            if (sharesError) throw sharesError;
+
+            // 3. 차단된 유저의 요청 필터링 및 포맷팅
+            const formattedShares = (shares || [])
+                .filter(item => {
+                    const writerId = (item.notes as any)?.writer_id;
+                    // 차단된 유저가 보낸 것은 제외
+                    return writerId && !blockedUserIds.has(writerId);
+                })
+                .map(item => ({
+                    id: item.id,
+                    noteId: item.note_id,
+                    title: (item.notes as any)?.title || '제목 없음',
+                    senderName: (item.notes as any)?.users?.nickname || 'Unknown',
+                    senderAvatar: (item.notes as any)?.users?.avatar_url,
+                    createdAt: (item.notes as any)?.created_at
+                }));
+
+            setPendingNotes(formattedShares);
         } catch (e) {
             console.error("공유 대기 메모 불러오기 실패:", e);
         }
@@ -201,7 +241,7 @@ export default function MemoListModal({ userId, currentUrl, currentPageTitle, on
             if (error) throw error;
 
             alert("공유를 수락했습니다.");
-            setPendingNotes(prev => prev.filter(n => n.share_id !== shareId));
+            setPendingNotes(prev => prev.filter(n => n.id !== shareId));
             fetchNotes(); // 목록 갱신
         } catch (e) {
             console.error("수락 실패:", e);
@@ -354,29 +394,29 @@ export default function MemoListModal({ userId, currentUrl, currentPageTitle, on
                             <div className={`overflow-hidden transition-[max-height] duration-300 ease-in-out ${isInboxExpanded ? "max-h-[500px]" : "max-h-0"}`}>
                                 <div className="divide-y divide-gray-50 bg-orange-50/30">
                                     {pendingNotes.map((item) => (
-                                        <div key={item.share_id} className="p-4 flex items-center justify-between gap-3">
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="font-bold text-sm text-gray-900 truncate">
-                                                        {item.note?.title || "제목 없음"}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                                                    <User size={10} />
-                                                    <span>{item.note?.writer?.nickname || "알 수 없는 사용자"}</span>
-                                                    <span className="text-gray-300">|</span>
-                                                    <span>{new Date(item.note?.created_at).toLocaleDateString()}</span>
+                                        <div key={item.id} className="p-4 bg-white border border-blue-100 rounded-xl shadow-sm hover:shadow-md transition-all">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <h3 className="font-bold text-gray-800 text-lg mb-1">{item.title}</h3>
+                                                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                        <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
+                                                            <UserCircle2 size={12} />
+                                                            <span>{item.senderName}</span>
+                                                        </div>
+                                                        <span>•</span>
+                                                        <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2 flex-shrink-0">
                                                 <button
-                                                    onClick={() => handleAcceptShare(item.share_id)}
+                                                    onClick={() => handleAcceptShare(item.id)}
                                                     className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-lg shadow-sm transition-colors"
                                                 >
                                                     수락
                                                 </button>
                                                 <button
-                                                    onClick={() => handleRejectShare(item.share_id)}
+                                                    onClick={() => handleRejectShare(item.id)}
                                                     className="px-3 py-1.5 bg-white border border-gray-200 hover:bg-gray-100 text-gray-600 text-xs font-bold rounded-lg transition-colors"
                                                 >
                                                     거절

@@ -3,13 +3,13 @@ import { type FriendStatus, type SearchUserResult } from "../types";
 import { supabase } from "../supabase";
 
 export function useFriendship(currentUserId: string | null, targetUserId?: string) {
-    const [status, setStatus] = useState<FriendStatus>('none');
+    const [status, setStatus] = useState<FriendStatus>('NONE');
     const [isLoading, setIsLoading] = useState(false);
 
     // 친구 상태 확인
     const checkFriendStatus = useCallback(async () => {
         if (!currentUserId || !targetUserId || currentUserId === targetUserId) {
-            setStatus('none');
+            setStatus('NONE');
             return;
         }
 
@@ -25,9 +25,9 @@ export function useFriendship(currentUserId: string | null, targetUserId?: strin
                 console.error("친구 상태 확인 에러:", error);
             }
 
-            // 데이터가 있으면 해당 status, 없으면 'none'
-            setStatus(data?.status as FriendStatus || 'none');
-        } catch (e) { console.error(e); setStatus('none'); }
+            // 데이터가 있으면 해당 status, 없으면 'NONE'
+            setStatus(data?.status as FriendStatus || 'NONE');
+        } catch (e) { console.error(e); setStatus('NONE'); }
     }, [currentUserId, targetUserId]);
 
     // 친구 상태 변경 시 재확인
@@ -35,50 +35,47 @@ export function useFriendship(currentUserId: string | null, targetUserId?: strin
         checkFriendStatus();
     }, [checkFriendStatus]);
 
-    // 친구 상태 변경
-    const updateStatus = async (newStatus: 'added' | 'blocked') => {
+    // 친구 상태 변경 (NONE일 경우 DB 삭제)
+    const updateStatus = async (newStatus: 'ADDED' | 'BLOCKED' | 'NONE') => {
         if (!currentUserId || !targetUserId) return;
         setIsLoading(true);
         try {
-            const { error } = await supabase
-                .from('friends')
-                .upsert({
-                    user_id: currentUserId,
-                    friend_id: targetUserId,
-                    status: newStatus,
-                    added_at: new Date().toISOString()
-                }, { onConflict: 'user_id, friend_id' });
-            if (error) throw error;
+            if (newStatus === 'NONE') {
+                // NONE 상태면 DB에서 삭제
+                const { error } = await supabase
+                    .from('friends')
+                    .delete()
+                    .eq('user_id', currentUserId)
+                    .eq('friend_id', targetUserId);
+                if (error) throw error;
+            } else {
+                // ADDED 또는 BLOCKED면 Upsert
+                const { error } = await supabase
+                    .from('friends')
+                    .upsert({
+                        user_id: currentUserId,
+                        friend_id: targetUserId,
+                        status: newStatus,
+                        added_at: new Date().toISOString()
+                    }, { onConflict: 'user_id, friend_id' });
+                if (error) throw error;
+            }
             setStatus(newStatus);
-        } catch (e) { console.error(`${newStatus} 변경 실폐: `, e); }
-        finally { setIsLoading(false); }
+        } catch (e) {
+            console.error(`${newStatus} 처리 실패: `, e);
+            // 에러 시 상태 롤백 혹은 추가 처리 필요 시 작성
+        } finally { setIsLoading(false); }
     };
 
-    // DB에서 삭제
-    const removeRelation = async () => {
-        if (!currentUserId || !targetUserId) return;
-        setIsLoading(true);
-        try {
-            const { error } = await supabase
-                .from('friends')
-                .delete()
-                .eq('user_id', currentUserId)
-                .eq('friend_id', targetUserId);
-            if (error) throw error;
-            setStatus('none');
-        } catch (e) { console.error('친구 상태 처리 실패: ', e); }
-        finally { setIsLoading(false); }
-    }
-
-    const addFriend = () => updateStatus('added');
-    const blockFriend = () => updateStatus('blocked');
+    const addFriend = () => updateStatus('ADDED');
+    const blockFriend = () => updateStatus('BLOCKED');
 
     const removeFriend = () => {
         if (confirm("해당 유저를 친구 목록에서 삭제하시겠습니까?")) {
-            removeRelation();
+            updateStatus('NONE');
         }
     };
-    const unblockFriend = () => removeRelation();
+    const unblockFriend = () => updateStatus('NONE');
 
     // 유저 검색 (RPC 사용)
     const searchUserByEmail = async (email: string): Promise<SearchUserResult | null> => {

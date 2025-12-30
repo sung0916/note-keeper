@@ -33,7 +33,7 @@
     "https://note-keeper-nu.vercel.app/*",
     "https://*.supabase.co/*",
     "https://accounts.google.com/",
-    "http://localhost:3000/*"
+    "http://localhost:3000/"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval' http://localhost:5173; object-src 'self'"

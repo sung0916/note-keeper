@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { type Note } from "../../types";
 import { Bookmark, ChevronDown, Edit2, List, MessageSquare, Send, Share2, ShieldBan, ShieldCheck, Sparkles, User, UserCircle2, UserMinus, UserPlus, X, Users } from "lucide-react";
 import { supabase } from "../../supabase";
-import AiRecommendationList from "../AiRecommendationList";
+import AiRecommendationList from "./AiRecommendationList";
 import ImageViewerModal from "../common/ImageViewerModal";
 import { useNoteComments } from "../../hooks/useNoteComments";
 import { useNoteAi } from "../../hooks/useNoteAi";
@@ -10,6 +10,10 @@ import { useFriendship } from "../../hooks/useFriendship";
 import CommentItem from "../comment/CommentItem";
 import ShareMemoModal from "./ShareMemoModal";
 import ParticipantsModal from "./ParticipantsModal";
+import FriendListModal from "../user/FriendListModal";
+import MemoListModal from "../user/MemoListModal";
+import BookmarkListModal from "../user/BookmarkListModal";
+import SharedMemoListModal from "../user/SharedMemoListModal";
 
 interface NoteDetailModalProps {
     note: Note;
@@ -26,11 +30,19 @@ export default function NoteDetailModal({ note, autoTriggerAi = false, onClose, 
     const [isAuthorMenuOpen, setIsAuthorMenuOpen] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [isParticipantsModalOpen, setIsParticipantsModalOpen] = useState(false); // 참여자 모달 상태
+    const [isFriendModalOpen, setIsFriendModalOpen] = useState(false);
+    const [isMemoListModalOpen, setIsMemoListModalOpen] = useState(false);
+    const [isBookmarkModalOpen, setIsBookmarkModalOpen] = useState(false);
+    const [isSharedMemoListModalOpen, setIsSharedMemoListModalOpen] = useState(false);
+    const [targetSharedUserId, setTargetSharedUserId] = useState<string | null>(null);
+    const [updatedNickname, setUpdatedNickname] = useState<string | null>(null);
+    const [updatedAvatar, setUpdatedAvatar] = useState<string | null>(null);
+
     const [viewingImage, setViewingImage] = useState<{ url: string; uid: string } | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const isMe = userId === note.writer_id;
-    const authorName = note.users?.nickname || "Unknown User";
-    const authorAvatar = note.users?.avatar_url;
+    const authorName = (isMe && updatedNickname) ? updatedNickname : (note.users?.nickname || "Unknown User");
+    const authorAvatar = (isMe && updatedAvatar) ? updatedAvatar : note.users?.avatar_url;
 
     // Comments Hook
     const {
@@ -72,9 +84,9 @@ export default function NoteDetailModal({ note, autoTriggerAi = false, onClose, 
     };
 
     // 이미지 클릭
-    const handleImageClick = (url: string | undefined, uid: string | undefined) => {
-        if (!url || !uid) return;
-        setViewingImage({ url, uid });
+    const handleImageClick = (url: string | null | undefined, uid: string | undefined) => {
+        if (!uid) return;
+        setViewingImage({ url: url || '', uid });
         setIsImageModalOpen(true);
     };
 
@@ -106,10 +118,6 @@ export default function NoteDetailModal({ note, autoTriggerAi = false, onClose, 
                         <X size={24} className="text-gray-600" />
                     </button>
                     <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                            <MessageSquare size={12} />
-                            <span>Comments ({comments.length})</span>
-                        </div>
 
                         {/* 참여자 아이콘 추가 */}
                         <div
@@ -137,12 +145,18 @@ export default function NoteDetailModal({ note, autoTriggerAi = false, onClose, 
                 <div className="flex-1 overflow-y-auto p-5 custom-scrollbar pb-32">
                     {/* Note Content Area */}
                     <div className="mb-6">
-                        <h1 className="text-2xl font-bold text-gray-900 leading-tight mb-4 break-words">{note.title}</h1>
+                        <div className="flex items-start justify-between gap-4 mb-4">
+                            <h1 className="text-2xl font-bold text-gray-900 leading-tight break-words flex-1">{note.title}</h1>
+                            <div className="flex items-center gap-2 text-xs font-medium text-gray-400 bg-gray-600/10 hover:bg-gray-600/20 px-3 py-1.5 rounded-full transition-colors flex-shrink-0 cursor-default">
+                                <MessageSquare size={14} fill="currentColor" className="opacity-70" />
+                                <span>Comments ({comments.length})</span>
+                            </div>
+                        </div>
 
                         {/* Author Info & Dropdown */}
                         <div className="flex items-center gap-3 relative">
                             <button
-                                onClick={() => setIsImageModalOpen(true)}
+                                onClick={() => handleImageClick(authorAvatar, note.writer_id)}
                                 className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border hover:ring-2 hover:ring-blue-100"
                             >
                                 {authorAvatar ? (
@@ -178,29 +192,38 @@ export default function NoteDetailModal({ note, autoTriggerAi = false, onClose, 
 
                                             {isMe ? (
                                                 <>
-                                                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => closeFriendMenu(() => setIsFriendModalOpen(true))}
+                                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-2"
+                                                    >
                                                         <User size={14} /> 친구 목록
                                                     </button>
-                                                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => closeFriendMenu(() => setIsMemoListModalOpen(true))}
+                                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-2"
+                                                    >
                                                         <List size={14} /> 나의 메모
                                                     </button>
-                                                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => closeFriendMenu(() => setIsBookmarkModalOpen(true))}
+                                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-2"
+                                                    >
                                                         <Bookmark size={14} /> 북마크
                                                     </button>
                                                 </>
                                             ) : (
                                                 <>
-                                                    {friendStatus !== 'blocked' && (
+                                                    {friendStatus !== 'BLOCKED' && (
                                                         <button
-                                                            onClick={() => closeFriendMenu(friendStatus === 'added' ? removeFriend : addFriend)}
+                                                            onClick={() => closeFriendMenu(friendStatus === 'ADDED' ? removeFriend : addFriend)}
                                                             disabled={isFriendLoading}
-                                                            className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${friendStatus === 'added'
+                                                            className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${friendStatus === 'ADDED'
                                                                 ? 'text-red-600 hover:bg-red-50'
                                                                 : 'text-blue-600 hover:bg-blue-50'
                                                                 }`}
                                                         >
-                                                            {friendStatus === 'added' ? <UserMinus size={14} /> : <UserPlus size={14} />}
-                                                            {friendStatus === 'added' ? "친구 삭제" : "친구 추가"}
+                                                            {friendStatus === 'ADDED' ? <UserMinus size={14} /> : <UserPlus size={14} />}
+                                                            {friendStatus === 'ADDED' ? "친구 삭제" : "친구 추가"}
                                                         </button>
                                                     )}
 
@@ -212,15 +235,15 @@ export default function NoteDetailModal({ note, autoTriggerAi = false, onClose, 
 
                                                     {/* 차단/차단해제 */}
                                                     <button
-                                                        onClick={() => closeFriendMenu(friendStatus === 'blocked' ? unblockFriend : blockFriend)}
+                                                        onClick={() => closeFriendMenu(friendStatus === 'BLOCKED' ? unblockFriend : blockFriend)}
                                                         disabled={isFriendLoading}
-                                                        className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${friendStatus === 'blocked'
+                                                        className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${friendStatus === 'BLOCKED'
                                                             ? 'text-gray-600 hover:bg-gray-100'
                                                             : 'text-red-600 hover:bg-red-50'
                                                             }`}
                                                     >
-                                                        {friendStatus === 'blocked' ? <ShieldCheck size={14} /> : <ShieldBan size={14} />}
-                                                        {friendStatus === 'blocked' ? "차단 해제" : "차단하기"}
+                                                        {friendStatus === 'BLOCKED' ? <ShieldCheck size={14} /> : <ShieldBan size={14} />}
+                                                        {friendStatus === 'BLOCKED' ? "차단 해제" : "차단하기"}
                                                     </button>
                                                 </>
                                             )}
@@ -251,6 +274,10 @@ export default function NoteDetailModal({ note, autoTriggerAi = false, onClose, 
                                 onCancelEdit={() => setEditingCommentId(null)}
                                 onDelete={deleteComment}
                                 onImageClick={handleImageClick}
+                                onOpenSharedMemos={(targetUserId) => {
+                                    setTargetSharedUserId(targetUserId);
+                                    setIsSharedMemoListModalOpen(true);
+                                }}
                             />
                         ))}
                     </div>
@@ -331,6 +358,42 @@ export default function NoteDetailModal({ note, autoTriggerAi = false, onClose, 
                 onClose={() => setIsParticipantsModalOpen(false)}
                 note={note}
             />
+
+            {isFriendModalOpen && (
+                <FriendListModal
+                    onClose={() => setIsFriendModalOpen(false)}
+                    onNicknameUpdated={setUpdatedNickname}
+                    onImageUpdated={setUpdatedAvatar}
+                    currentUser={{
+                        name: authorName,
+                        avatarUrl: authorAvatar,
+                        id: userId || undefined
+                    }}
+                />
+            )}
+
+            {isMemoListModalOpen && userId && (
+                <MemoListModal
+                    userId={userId}
+                    currentUrl={note.page_url}
+                    onClose={() => setIsMemoListModalOpen(false)}
+                />
+            )}
+
+            {isBookmarkModalOpen && userId && (
+                <BookmarkListModal
+                    userId={userId}
+                    onClose={() => setIsBookmarkModalOpen(false)}
+                />
+            )}
+
+            {isSharedMemoListModalOpen && userId && targetSharedUserId && (
+                <SharedMemoListModal
+                    currentUserId={userId}
+                    targetUserId={targetSharedUserId}
+                    onClose={() => setIsSharedMemoListModalOpen(false)}
+                />
+            )}
         </>
     );
 }

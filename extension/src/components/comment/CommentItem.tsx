@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useFriendship } from "../../hooks/useFriendship";
-import { Bookmark, Check, Edit2, List, Share2, ShieldBan, ShieldCheck, Trash2, User, UserCircle2, UserMinus, UserPlus, XCircle } from "lucide-react";
+import { Share2, ShieldBan, ShieldCheck, Trash2, UserCircle2, UserMinus, UserPlus, XCircle, Check, Edit2 } from "lucide-react";
 import type { Comment } from "../../types";
 
 interface CommentItemProps {
@@ -14,6 +14,7 @@ interface CommentItemProps {
     onCancelEdit: () => void;
     onDelete: (commentId: number) => void;
     onImageClick: (url: string | undefined, userId: string | undefined) => void;
+    onOpenSharedMemos: (userId: string) => void;
 }
 
 export default function CommentItem({
@@ -26,7 +27,8 @@ export default function CommentItem({
     onSaveEdit,
     onCancelEdit,
     onDelete,
-    onImageClick
+    onImageClick,
+    onOpenSharedMemos
 }: CommentItemProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -48,10 +50,11 @@ export default function CommentItem({
 
     return (
         <div className="flex gap-3 items-start group">
-            {/* 이미지 뷰어 */}
+            {/* 이미지 뷰어 (본인이 아닐 때만 클릭 가능) */}
             <button
-                onClick={() => onImageClick(authorAvatar, comment.writer_id)}
-                className="w-8 h-8 rounded-full bg-gray-100 flex-shrink-0 mt-1 overflow-hidden hover:ring-2 hover:ring-blue-100 transition-all"
+                onClick={() => !isMe && onImageClick(authorAvatar, comment.writer_id)}
+                className={`w-8 h-8 rounded-full bg-gray-100 flex-shrink-0 mt-1 overflow-hidden transition-all ${!isMe ? 'hover:ring-2 hover:ring-blue-100 cursor-pointer' : 'cursor-default'}`}
+                disabled={isMe}
             >
                 {authorAvatar ? (
                     <img src={authorAvatar} className="w-full h-full object-cover" alt={authorName} />
@@ -92,59 +95,46 @@ export default function CommentItem({
                                     className="text-xs font-bold text-gray-700 hover:text-blue-600 flex items-center gap-1 transition-colors"
                                 >
                                     {authorName}
-                                    {/* 내가 아닌 경우 등 조건에 따라 아이콘 표시 가능 */}
+                                    {isMe && <span className="text-[10px] text-gray-400 font-normal ml-1"> (나)</span>}
                                 </button>
 
-                                {/* 드롭다운 메뉴 */}
-                                {isMenuOpen && (
+                                {/* 드롭다운 메뉴 (본인이 아닐 때만 표시) */}
+                                {isMenuOpen && !isMe && (
                                     <>
                                         <div className="fixed inset-0 z-30" onClick={() => setIsMenuOpen(false)} />
                                         <div className="absolute left-0 top-6 w-48 bg-white border rounded-lg shadow-xl z-40 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
                                             <div className="px-4 py-2 border-b bg-gray-50">
-                                                <p className="text-xs text-gray-500">{isMe ? "내 계정" : "작성자"}</p>
+                                                <p className="text-xs text-gray-500">작성자</p>
                                                 <p className="text-sm font-bold truncate">{authorName}</p>
                                             </div>
 
-                                            {isMe ? (
-                                                <>
-                                                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-2">
-                                                        <User size={14} /> 친구 목록
-                                                    </button>
-                                                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-2">
-                                                        <List size={14} /> 나의 메모
-                                                    </button>
-                                                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-2">
-                                                        <Bookmark size={14} /> 북마크
-                                                    </button>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    {friendStatus !== 'blocked' && (
-                                                        <button
-                                                            onClick={() => closeMenu(friendStatus === 'added' ? removeFriend : addFriend)}
-                                                            disabled={isFriendLoading}
-                                                            className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${friendStatus === 'added' ? 'text-red-600 hover:bg-red-50' : 'text-blue-600 hover:bg-blue-50'
-                                                                }`}
-                                                        >
-                                                            {friendStatus === 'added' ? <UserMinus size={14} /> : <UserPlus size={14} />}
-                                                            {friendStatus === 'added' ? "친구 삭제" : "친구 추가"}
-                                                        </button>
-                                                    )}
-                                                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
-                                                        <Share2 size={14} /> 공유 중인 메모
-                                                    </button>
-                                                    <div className="border-t my-1"></div>
-                                                    <button
-                                                        onClick={() => closeMenu(friendStatus === 'blocked' ? unblockFriend : blockFriend)}
-                                                        disabled={isFriendLoading}
-                                                        className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${friendStatus === 'blocked' ? 'text-gray-600 hover:bg-gray-100' : 'text-red-600 hover:bg-red-50'
-                                                            }`}
-                                                    >
-                                                        {friendStatus === 'blocked' ? <ShieldCheck size={14} /> : <ShieldBan size={14} />}
-                                                        {friendStatus === 'blocked' ? "차단 해제" : "차단하기"}
-                                                    </button>
-                                                </>
+                                            {friendStatus !== 'BLOCKED' && (
+                                                <button
+                                                    onClick={() => closeMenu(friendStatus === 'ADDED' ? removeFriend : addFriend)}
+                                                    disabled={isFriendLoading}
+                                                    className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${friendStatus === 'ADDED' ? 'text-red-600 hover:bg-red-50' : 'text-blue-600 hover:bg-blue-50'
+                                                        }`}
+                                                >
+                                                    {friendStatus === 'ADDED' ? <UserMinus size={14} /> : <UserPlus size={14} />}
+                                                    {friendStatus === 'ADDED' ? "친구 삭제" : "친구 추가"}
+                                                </button>
                                             )}
+                                            <button
+                                                onClick={() => closeMenu(() => onOpenSharedMemos(comment.writer_id))}
+                                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                            >
+                                                <Share2 size={14} /> 공유 중인 메모
+                                            </button>
+                                            <div className="border-t my-1"></div>
+                                            <button
+                                                onClick={() => closeMenu(friendStatus === 'BLOCKED' ? unblockFriend : blockFriend)}
+                                                disabled={isFriendLoading}
+                                                className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${friendStatus === 'BLOCKED' ? 'text-gray-600 hover:bg-gray-100' : 'text-red-600 hover:bg-red-50'
+                                                    }`}
+                                            >
+                                                {friendStatus === 'BLOCKED' ? <ShieldCheck size={14} /> : <ShieldBan size={14} />}
+                                                {friendStatus === 'BLOCKED' ? "차단 해제" : "차단하기"}
+                                            </button>
                                         </div>
                                     </>
                                 )}

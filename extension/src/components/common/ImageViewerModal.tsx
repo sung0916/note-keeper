@@ -42,6 +42,11 @@ export default function ImageViewerModal({
                 .eq('id', userId);
             if (dbError) throw dbError;
 
+            const { error: authError } = await supabase.auth.updateUser({
+                data: { avatar_url: publicUrl }
+            });
+            if (authError) console.error("세션 메타데이터 업데이트 실패: ", authError);
+
             setDisplayUrl(publicUrl);
             if (onImageUpdated) onImageUpdated(publicUrl);
             alert("프로필 이미지가 변경되었습니다.");

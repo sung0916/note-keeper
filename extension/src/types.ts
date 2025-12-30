@@ -39,7 +39,8 @@ export interface AiAnalysisResult {
     recommendations: AiRecommendationItem[];
 }
 
-export type FriendStatus = 'none' | 'added' | 'blocked';
+
+export type FriendStatus = 'NONE' | 'ADDED' | 'BLOCKED';
 
 export interface Friend {
     id: number;
@@ -60,7 +61,7 @@ export interface SharedNote {
     note_id: number;
     guest_id: string; // receiver
     status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
-    permission: 'view' | 'edit';
+    permission: 'READ' | 'WRITE';
 }
 
 export interface NoteWithMeta extends Note {

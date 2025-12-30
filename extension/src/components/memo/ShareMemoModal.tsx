@@ -40,11 +40,33 @@ export default function ShareMemoModal({ isOpen, onClose, noteId, userId }: Shar
         setIsSharing(true);
 
         try {
-            const shares = Array.from(selectedFriendIds).map(receiverId => ({
+            // 중복 공유 체크
+            const receiverIds = Array.from(selectedFriendIds);
+            const { data: existingShares, error: checkError } = await supabase
+                .from('note_shares')
+                .select('guest_id')
+                .eq('note_id', noteId)
+                .in('guest_id', receiverIds)
+                .in('status', ['PENDING', 'ACCEPTED']);
+
+            if (checkError) throw checkError;
+
+            const existingGuestIds = new Set(existingShares?.map(s => s.guest_id));
+            const newGuestIds = receiverIds.filter(id => !existingGuestIds.has(id));
+
+            if (existingGuestIds.size > 0) {
+                alert("이미 공유 중이거나 공유된 사용자가 포함되어 있습니다.");
+                if (newGuestIds.length === 0) {
+                    setIsSharing(false);
+                    return;
+                }
+            }
+
+            const shares = newGuestIds.map(receiverId => ({
                 note_id: noteId,
                 guest_id: receiverId,
                 status: 'PENDING',
-                permission: 'view'
+                permission: 'READ'
             }));
 
             const { error } = await supabase
@@ -53,7 +75,7 @@ export default function ShareMemoModal({ isOpen, onClose, noteId, userId }: Shar
 
             if (error) throw error;
 
-            alert(`${selectedFriendIds.size}명에게 메모를 공유했습니다.`);
+            alert(`${newGuestIds.length}명에게 메모를 공유했습니다.`);
             onClose();
             setSelectedFriendIds(new Set());
         } catch (e) {

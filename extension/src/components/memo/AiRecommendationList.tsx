@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { supabase } from "../supabase";
-import type { AiRecommendationItem } from "../types";
+import { supabase } from "../../supabase";
+import type { AiRecommendationItem } from "../../types";
 import { Bookmark, CheckCircle, ExternalLink, Globe, RefreshCw, X } from "lucide-react";
 
 interface AiRecommendationListProps {

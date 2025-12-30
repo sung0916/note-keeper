@@ -28,7 +28,7 @@ export default function NoteList({ notes, loading, onRefresh, onEditNote, select
         const isMyNote = note.writer_id === userId;
         const message = isMyNote
             ? '정말 메모를 삭제하시겠습니까?'
-            : '공유를 해제하시겠습니까? (원본 메모는 삭제되지 않습니다)';
+            : '공유를 해제하시겠습니까? (작성한 메모는 삭제되지 않습니다)';
 
         if (!confirm(message)) return;
 

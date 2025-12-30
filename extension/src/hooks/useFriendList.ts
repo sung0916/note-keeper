@@ -8,6 +8,7 @@ export interface FriendDisplay {
     googleId: string;
     avatarUrl?: string;
     isOnline?: boolean;
+    status: 'ADDED' | 'BLOCKED';
 }
 
 export function useFriendList(userId: string | null) {
@@ -32,7 +33,7 @@ export function useFriendList(userId: string | null) {
                     )
                 `)
                 .eq('user_id', userId)
-                .eq('status', 'added');
+                .in('status', ['ADDED', 'BLOCKED']);
 
             if (error) throw error;
 
@@ -42,7 +43,8 @@ export function useFriendList(userId: string | null) {
                 name: item.users?.nickname || item.users?.email?.split('@')[0] || 'Unknown',
                 googleId: item.users?.email || '',
                 avatarUrl: item.users?.avatar_url,
-                isOnline: false
+                isOnline: false,
+                status: item.status
             }));
 
             setFriends(formattedFriends);

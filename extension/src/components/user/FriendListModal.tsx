@@ -1,11 +1,15 @@
-import { ArrowLeft, MoreVertical, Search, UserPlus, Check, UserCircle2, Copy, Trash2, X } from "lucide-react";
+import { ArrowLeft, MoreVertical, Search, UserPlus, Check, UserCircle2, Copy, Trash2, X, ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { useFriendList } from "../../hooks/useFriendList";
 import { supabase } from "../../supabase";
 import { type SearchUserResult } from "../../types";
+import ImageViewerModal from "../common/ImageViewerModal";
+import NicknameEdit from "./NicknameEdit";
 
 interface FriendListModalProps {
     onClose: () => void;
+    onImageUpdated?: (newUrl: string) => void;
+    onNicknameUpdated?: (newName: string) => void;
     currentUser: {
         name: string;
         avatarUrl?: string;
@@ -13,11 +17,13 @@ interface FriendListModalProps {
     };
 }
 
-export default function FriendListModal({ onClose, currentUser }: FriendListModalProps) {
+export default function FriendListModal({ onClose, onImageUpdated, onNicknameUpdated, currentUser }: FriendListModalProps) {
     const [isClosing, setIsClosing] = useState(false);
     const [searchText, setSearchText] = useState("");
     const [selectedFriends, setSelectedFriends] = useState<Set<number>>(new Set());
     const [showMenu, setShowMenu] = useState(false);
+    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+    const [isBlockedExpanded, setIsBlockedExpanded] = useState(false);
 
     // 친구 추가 모달 상태
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -46,6 +52,9 @@ export default function FriendListModal({ onClose, currentUser }: FriendListModa
         friend.name.toLowerCase().includes(searchText.toLowerCase()) ||
         friend.googleId.toLowerCase().includes(searchText.toLowerCase())
     );
+
+    const addedFriends = filteredFriends.filter(f => f.status === 'ADDED');
+    const blockedFriends = filteredFriends.filter(f => f.status === 'BLOCKED');
 
     // ID 복사
     const handleCopyId = (e: React.MouseEvent, id: string) => {
@@ -153,7 +162,7 @@ export default function FriendListModal({ onClose, currentUser }: FriendListModa
                 .insert({
                     user_id: currentUser.id,
                     friend_id: searchResult.id,
-                    status: 'added',
+                    status: 'ADDED',
                     added_at: new Date().toISOString()
                 });
 
@@ -244,8 +253,11 @@ export default function FriendListModal({ onClose, currentUser }: FriendListModa
                 {/* My Profile */}
                 <div className="px-4 py-3 border-b border-gray-100">
                     <div className="flex items-center gap-3">
-                        <div className="relative">
-                            <div className="w-12 h-12 rounded-full bg-yellow-100 overflow-hidden border border-gray-200">
+                        <button
+                            onClick={() => setIsImageModalOpen(true)}
+                            className="relative group focus:outline-none"
+                        >
+                            <div className="w-12 h-12 rounded-full bg-yellow-100 overflow-hidden border border-gray-200 group-hover:ring-2 group-hover:ring-blue-100 transition-all">
                                 {currentUser.avatarUrl ? (
                                     <img src={currentUser.avatarUrl} alt="me" className="w-full h-full object-cover" />
                                 ) : (
@@ -253,28 +265,29 @@ export default function FriendListModal({ onClose, currentUser }: FriendListModa
                                 )}
                             </div>
                             <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-                        </div>
+                        </button>
                         <div className="flex items-center gap-2">
-                            <span className="font-bold text-gray-900 text-base">{currentUser.name}</span>
-                            <span className="bg-gray-200 text-gray-600 text-[10px] px-1.5 py-0.5 rounded font-medium">나</span>
+                            <NicknameEdit
+                                userId={currentUser.id || ""}
+                                initialNickname={currentUser.name}
+                                onUpdated={onNicknameUpdated || (() => { })}
+                            />
                         </div>
                     </div>
                 </div>
 
                 {/* List Header */}
                 <div className="px-4 py-2 flex items-center justify-between text-xs text-gray-500 border-b border-gray-50">
-                    <span>목록 ({filteredFriends.length})</span>
+                    <span>친구 목록 ({addedFriends.length})</span>
                 </div>
 
-                {/* Friend List */}
+                {/* Added Friend List */}
                 <div className="divide-y divide-gray-50">
                     {isLoading ? (
-                        <div className="p-8 text-center text-gray-400 text-sm">
-                            로딩 중...
-                        </div>
+                        <div className="p-8 text-center text-gray-400 text-sm">로딩 중...</div>
                     ) : (
                         <>
-                            {filteredFriends.map((friend) => (
+                            {addedFriends.map((friend) => (
                                 <div key={friend.id} className="px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => toggleSelect(friend.id)}>
                                     <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
                                         <div className="relative flex-shrink-0">
@@ -317,14 +330,67 @@ export default function FriendListModal({ onClose, currentUser }: FriendListModa
                                     </div>
                                 </div>
                             ))}
-                            {!isLoading && filteredFriends.length === 0 && (
+                            {!isLoading && addedFriends.length === 0 && (
                                 <div className="p-8 text-center text-gray-400 text-sm">
-                                    {searchText ? "검색 결과가 없습니다." : "친구가 없습니다."}
+                                    {searchText ? "검색 결과가 없습니다." : "친구 목록이 비어있습니다."}
                                 </div>
                             )}
                         </>
                     )}
                 </div>
+
+                {/* Blocked List Section */}
+                {blockedFriends.length > 0 && (
+                    <div className="mt-4">
+                        <button
+                            onClick={() => setIsBlockedExpanded(!isBlockedExpanded)}
+                            className="w-full px-4 py-2 flex items-center justify-between text-xs text-gray-500 bg-gray-50 border-y border-gray-100 hover:bg-gray-100 transition-colors"
+                        >
+                            <div className="flex items-center gap-1">
+                                {isBlockedExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                <span className="font-bold">차단 목록 ({blockedFriends.length})</span>
+                            </div>
+                        </button>
+
+                        {isBlockedExpanded && (
+                            <div className="divide-y divide-gray-50 bg-white">
+                                {blockedFriends.map((friend) => (
+                                    <div key={friend.id} className="px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer opacity-70" onClick={() => toggleSelect(friend.id)}>
+                                        <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
+                                            <div className="relative flex-shrink-0">
+                                                <div className="w-10 h-10 rounded-full bg-gray-50 overflow-hidden border border-gray-100">
+                                                    {friend.avatarUrl ? (
+                                                        <img src={friend.avatarUrl} alt={friend.name} className="w-full h-full object-cover grayscale" />
+                                                    ) : (
+                                                        <UserCircle2 className="w-full h-full text-gray-300" />
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col min-w-0">
+                                                <div className="flex items-center gap-1">
+                                                    <span className="font-medium text-gray-400 line-through truncate">{friend.name}</span>
+                                                    <span className="text-[10px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded font-bold">차단됨</span>
+                                                </div>
+                                                <span className="text-xs text-gray-400 truncate">{friend.googleId}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Checkbox */}
+                                        <div className="p-1 flex-shrink-0">
+                                            {selectedFriends.has(friend.id) ? (
+                                                <div className="w-5 h-5 bg-gray-400 rounded border border-gray-400 flex items-center justify-center text-white transition-colors">
+                                                    <Check size={14} strokeWidth={3} />
+                                                </div>
+                                            ) : (
+                                                <div className="w-5 h-5 bg-white rounded border border-gray-300 hover:border-gray-200 transition-colors" />
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Footer or Selection Bar */}
@@ -404,6 +470,17 @@ export default function FriendListModal({ onClose, currentUser }: FriendListModa
                         )}
                     </div>
                 </>
+            )}
+
+            {/* 이미지 뷰어 모달 */}
+            {isImageModalOpen && (
+                <ImageViewerModal
+                    imageUrl={currentUser.avatarUrl}
+                    isOwnProfile={true}
+                    userId={currentUser.id}
+                    onClose={() => setIsImageModalOpen(false)}
+                    onImageUpdated={onImageUpdated}
+                />
             )}
         </div>
     );

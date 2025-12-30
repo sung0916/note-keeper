@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../supabase";
-import { Palette, Save, Type, X } from "lucide-react";
-import ColorPicker from "../ColorPicker";
+import { Save, X } from "lucide-react";
 import type { Note } from "../../types";
 
 interface NoteModalPropts {
@@ -15,16 +14,12 @@ interface NoteModalPropts {
 export default function NoteModal({ pageUrl, pageTitle, onClose, onNoteSaved, noteToEdit }: NoteModalPropts) {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
-    const [bgColor, setBgColor] = useState('#FFFFFF');
-    const [textColor, setTextColor] = useState('#000000');
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         if (noteToEdit) {
             setTitle(noteToEdit.title);
             setContent(noteToEdit.content);
-            setBgColor(noteToEdit.bg_color || '#FFFFFF');
-            setTextColor(noteToEdit.text_color || '#000000');
         }
     }, [noteToEdit]);
 
@@ -43,8 +38,6 @@ export default function NoteModal({ pageUrl, pageTitle, onClose, onNoteSaved, no
                     .update({
                         title,
                         content,
-                        bg_color: bgColor,
-                        text_color: textColor,
                     })
                     .eq('note_id', noteToEdit.note_id);
                 error = updateError;
@@ -58,8 +51,6 @@ export default function NoteModal({ pageUrl, pageTitle, onClose, onNoteSaved, no
                         title: title,
                         content: content,
                         writer_id: session.user.id,
-                        bg_color: bgColor,
-                        text_color: textColor,
                     });
                 error = insertError;
             }
@@ -94,7 +85,6 @@ export default function NoteModal({ pageUrl, pageTitle, onClose, onNoteSaved, no
                 {/* 입력 영역 */}
                 <div
                     className="flex-1 p-4 flex flex-col gap-3 overflow-hidden transition-colors duration-300"
-                    style={{ backgroundColor: bgColor }}
                 >
                     <input
                         type="text"
@@ -102,7 +92,6 @@ export default function NoteModal({ pageUrl, pageTitle, onClose, onNoteSaved, no
                         placeholder="제목을 입력하세요"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        style={{ color: textColor }}
                         autoFocus
                     />
                     <textarea
@@ -110,27 +99,12 @@ export default function NoteModal({ pageUrl, pageTitle, onClose, onNoteSaved, no
                         placeholder="메모 내용을 입력하세요..."
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
-                        style={{ color: textColor }}
                     />
                 </div>
 
                 {/* 하단 버튼 영역 */}
                 <div className="p-4 border-t bg-white flex justify-between items-center flex-shrink-0">
                     <div className="flex items-center gap-2">
-                        <ColorPicker
-                            icon={<Palette size={18} className="text-gray-600" />}
-                            selectedColor={bgColor}
-                            onSelect={setBgColor}
-                            defaultColor="#FFFFFF"
-                            label="배경색 변경"
-                        />
-                        <ColorPicker
-                            icon={<Type size={18} className="text-gray-600" />}
-                            selectedColor={textColor}
-                            onSelect={setTextColor}
-                            defaultColor="#000000"
-                            label="글자색 변경"
-                        />
                     </div>
 
                     <div className="flex gap-2">
